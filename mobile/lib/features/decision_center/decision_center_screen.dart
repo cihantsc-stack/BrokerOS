@@ -7,6 +7,7 @@ import 'widgets/ai_decision_card.dart';
 import 'widgets/ai_score_card.dart';
 import 'widgets/consensus_card.dart';
 import 'widgets/disclaimer_text.dart';
+import 'widgets/institution_flow_card.dart';
 import 'widgets/market_money_flow_card.dart';
 import 'widgets/morning_brief_card.dart';
 import 'widgets/news_impact_card.dart';
@@ -24,28 +25,31 @@ class DecisionCenterScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _DecisionHeader(),
+          _Header(),
           SizedBox(height: 18),
 
           AiDecisionCard(),
           SizedBox(height: 18),
 
-          PusuScoreCard(),
+          MorningBriefCard(),
           SizedBox(height: 18),
 
-          MorningBriefCard(),
+          PusuScoreCard(),
           SizedBox(height: 18),
 
           AiScoreCard(),
           SizedBox(height: 18),
 
-          ConsensusCard(),
-          SizedBox(height: 18),
-
           MarketMoneyFlowCard(),
           SizedBox(height: 18),
 
+          InstitutionFlowCard(),
+          SizedBox(height: 18),
+
           SectorHeatmapCard(),
+          SizedBox(height: 18),
+
+          ConsensusCard(),
           SizedBox(height: 18),
 
           OpportunityCard(),
@@ -64,8 +68,8 @@ class DecisionCenterScreen extends StatelessWidget {
   }
 }
 
-class _DecisionHeader extends StatelessWidget {
-  const _DecisionHeader();
+class _Header extends StatelessWidget {
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +85,7 @@ class _DecisionHeader extends StatelessWidget {
         ),
         SizedBox(height: 6),
         Text(
-          'Bugün ne yapmalıyım?',
+          'Grafiği değil, paranın izini sür.',
           style: TextStyle(
             color: BrokerColors.primary,
             fontSize: 18,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/repository/mock_market_repository.dart';
+import '../../../core/services/broker_vision_service.dart';
 import '../../../shared/design/broker_colors.dart';
 import '../../../shared/widgets/broker_badge.dart';
 import '../../../shared/widgets/broker_card.dart';
@@ -9,17 +11,26 @@ class MorningBriefCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const BrokerCard(
+    final data = MockMarketRepository().getTodaySnapshot();
+    final vision = BrokerVisionService.generate(data);
+
+    return BrokerCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BrokerBadge(text: 'Sabah Brifingi'),
-          SizedBox(height: 14),
-          Text('Günaydın Cihan.', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          SizedBox(height: 10),
+          const BrokerBadge(text: 'Broker Vision'),
+          const SizedBox(height: 14),
+          const Text(
+            'Günaydın Cihan.',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
           Text(
-            'Bugün piyasayı senin için analiz ettim. Genel görünüm pozitif, risk seviyesi orta.',
-            style: TextStyle(color: BrokerColors.textSoft, height: 1.45),
+            vision,
+            style: const TextStyle(
+              color: BrokerColors.textSoft,
+              height: 1.45,
+            ),
           ),
         ],
       ),
