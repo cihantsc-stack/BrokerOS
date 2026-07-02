@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/design/broker_colors.dart';
-import '../../shared/widgets/broker_page.dart';
 import '../../shared/widgets/broker_card.dart';
+import '../../shared/widgets/broker_page.dart';
+
+import '../decision_center/widgets/market_money_flow_card.dart';
+import '../decision_center/widgets/morning_brief_card.dart';
+import '../decision_center/widgets/news_impact_card.dart';
+import '../decision_center/widgets/opportunity_card.dart';
+import '../decision_center/widgets/pusu_score_card.dart';
+import '../decision_center/widgets/sector_heatmap_card.dart';
+import '../decision_center/widgets/smart_money_card.dart';
 
 class DecisionCenterScreen extends StatelessWidget {
   const DecisionCenterScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const BrokerPage(
+    return BrokerPage(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: const [
           _MissionHeader(),
           SizedBox(height: 18),
           _MarketDecisionCard(),
@@ -24,8 +32,24 @@ class DecisionCenterScreen extends StatelessWidget {
           _WhyCard(),
           SizedBox(height: 18),
           _ConfidenceCard(),
+
+          SizedBox(height: 28),
+          _SectionTitle('Detaylı Piyasa Analizi'),
           SizedBox(height: 18),
-          _Disclaimer(),
+
+          MorningBriefCard(),
+          SizedBox(height: 18),
+          PusuScoreCard(),
+          SizedBox(height: 18),
+          MarketMoneyFlowCard(),
+          SizedBox(height: 18),
+          SectorHeatmapCard(),
+          SizedBox(height: 18),
+          OpportunityCard(),
+          SizedBox(height: 18),
+          SmartMoneyCard(),
+          SizedBox(height: 18),
+          NewsImpactCard(),
         ],
       ),
     );
@@ -97,11 +121,29 @@ class _MarketDecisionCard extends StatelessWidget {
           SizedBox(height: 18),
           Row(
             children: [
-              Expanded(child: _MiniStat(title: 'Güven', value: '%92', color: BrokerColors.green)),
+              Expanded(
+                child: _MiniStat(
+                  title: 'Güven',
+                  value: '%92',
+                  color: BrokerColors.green,
+                ),
+              ),
               SizedBox(width: 10),
-              Expanded(child: _MiniStat(title: 'Risk', value: 'Orta', color: BrokerColors.orange)),
+              Expanded(
+                child: _MiniStat(
+                  title: 'Risk',
+                  value: 'Orta',
+                  color: BrokerColors.orange,
+                ),
+              ),
               SizedBox(width: 10),
-              Expanded(child: _MiniStat(title: 'Durum', value: 'Pozitif', color: BrokerColors.primary)),
+              Expanded(
+                child: _MiniStat(
+                  title: 'Durum',
+                  value: 'Pozitif',
+                  color: BrokerColors.primary,
+                ),
+              ),
             ],
           ),
         ],
@@ -124,9 +166,24 @@ class _TodayMissionCard extends StatelessWidget {
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
           SizedBox(height: 14),
-          _MissionRow(rank: '1', symbol: 'ASELS', text: 'Radarına al', score: '94'),
-          _MissionRow(rank: '2', symbol: 'THYAO', text: 'İzle', score: '89'),
-          _MissionRow(rank: '3', symbol: 'AK3', text: 'Fon tarafında takip et', score: '86'),
+          _MissionRow(
+            rank: '1',
+            symbol: 'ASELS',
+            text: 'Radarına al',
+            score: '94',
+          ),
+          _MissionRow(
+            rank: '2',
+            symbol: 'THYAO',
+            text: 'İzle',
+            score: '89',
+          ),
+          _MissionRow(
+            rank: '3',
+            symbol: 'AK3',
+            text: 'Fon tarafında takip et',
+            score: '86',
+          ),
         ],
       ),
     );
@@ -205,11 +262,25 @@ class _ConfidenceCard extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            'Bugünkü piyasa kararına yüksek güven var. Ancak hisse bazlı kararlar ayrı değerlendirilmelidir.',
+            'Bugünkü piyasa kararına yüksek güven var. Hisse bazlı kararlar Radar ve Intelligence ekranında ayrıca değerlendirilecek.',
             style: TextStyle(color: BrokerColors.textSoft, height: 1.4),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String text;
+
+  const _SectionTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
     );
   }
 }
@@ -236,9 +307,21 @@ class _MiniStat extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(title, style: const TextStyle(color: BrokerColors.textSoft, fontSize: 12)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: BrokerColors.textSoft,
+              fontSize: 12,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900)),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );
@@ -270,12 +353,35 @@ class _MissionRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(rank, style: const TextStyle(color: BrokerColors.primary, fontWeight: FontWeight.w900)),
+          Text(
+            rank,
+            style: const TextStyle(
+              color: BrokerColors.primary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(width: 12),
-          Text(symbol, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          Text(
+            symbol,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, style: const TextStyle(color: BrokerColors.textSoft))),
-          Text(score, style: const TextStyle(color: BrokerColors.primary, fontWeight: FontWeight.w900)),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: BrokerColors.textSoft),
+            ),
+          ),
+          Text(
+            score,
+            style: const TextStyle(
+              color: BrokerColors.primary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );
@@ -319,22 +425,18 @@ class _EvidenceRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold))),
-          Text(stars, style: const TextStyle(color: BrokerColors.orange)),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Text(
+            stars,
+            style: const TextStyle(color: BrokerColors.orange),
+          ),
         ],
       ),
-    );
-  }
-}
-
-class _Disclaimer extends StatelessWidget {
-  const _Disclaimer();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Text(
-      'YTD: Broker OS yatırım tavsiyesi vermez. Veriyi anlamlandırarak karar desteği sağlar.',
-      style: TextStyle(color: BrokerColors.textMuted, fontSize: 12),
     );
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../features/ai/ai_screen.dart';
-import '../features/decision_center/decision_center_screen.dart';
-import '../features/markets/markets_screen.dart';
+import '../features/mission/decision_center_screen.dart';
 import '../features/portfolio/portfolio_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/radar/radar_screen.dart';
 import '../shared/design/broker_colors.dart';
 
 class BrokerNavigation extends StatefulWidget {
@@ -19,9 +19,9 @@ class _BrokerNavigationState extends State<BrokerNavigation> {
 
   final pages = const [
     DecisionCenterScreen(),
-    MarketsScreen(),
-    PortfolioScreen(),
+    RadarScreen(),
     AiScreen(),
+    PortfolioScreen(),
     ProfileScreen(),
   ];
 
@@ -37,11 +37,26 @@ class _BrokerNavigationState extends State<BrokerNavigation> {
         unselectedItemColor: Colors.white54,
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Karar'),
-          BottomNavigationBarItem(icon: Icon(Icons.show_chart_rounded), label: 'Piyasalar'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_rounded), label: 'Portföy'),
-          BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_rounded), label: 'AI'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profil'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.flag_rounded),
+            label: 'Mission',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.radar_rounded),
+            label: 'Radar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.psychology_alt_rounded),
+            label: 'AI',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Portföy',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'Profil',
+          ),
         ],
       ),
     );
