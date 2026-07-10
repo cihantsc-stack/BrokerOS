@@ -1,53 +1,32 @@
 import '../models/institution_flow.dart';
 
-class InstitutionService{
-
-  static List<InstitutionFlow> today(){
-
+class InstitutionService {
+  static List<InstitutionFlow> today() {
     return const [
-
       InstitutionFlow(
-
-        institution:"İş Yatırım",
-
-        amount:24.8,
-
-        buy:true,
-
+        institution: 'İş Yatırım',
+        buy: 31.4,
+        sell: 6.6,
+        net: 24.8,
       ),
-
       InstitutionFlow(
-
-        institution:"Bank of America",
-
-        amount:18.2,
-
-        buy:true,
-
+        institution: 'Bank of America',
+        buy: 26.7,
+        sell: 8.5,
+        net: 18.2,
       ),
-
       InstitutionFlow(
-
-        institution:"Yapı Kredi",
-
-        amount:14.5,
-
-        buy:true,
-
+        institution: 'Yapı Kredi',
+        buy: 22.1,
+        sell: 7.6,
+        net: 14.5,
       ),
-
       InstitutionFlow(
-
-        institution:"Ak Yatırım",
-
-        amount:9.1,
-
-        buy:false,
-
+        institution: 'Ak Yatırım',
+        buy: 7.3,
+        sell: 16.4,
+        net: -9.1,
       ),
-
     ];
-
   }
-
 }

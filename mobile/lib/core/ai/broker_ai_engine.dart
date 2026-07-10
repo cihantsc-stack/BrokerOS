@@ -1,51 +1,69 @@
 import '../models/ai_decision.dart';
+import '../models/broker_consensus.dart';
+import '../engine/broker_consensus_engine.dart';
 import '../models/market_snapshot.dart';
 
 class BrokerAiEngine {
   static AiDecision analyze(
     MarketSnapshot data,
   ) {
-    int score = 50;
+    final BrokerConsensus consensus =
+        BrokerConsensusEngine.calculate(data);
 
-    if (data.moneyFlow > 0) score += 10;
+    final List<String> comments = [];
 
-    if (data.smartMoney > 0) score += 10;
-
-    if (data.foreignRatio > 50) score += 8;
-
-    if (data.fundFlow > 0) score += 8;
-
-    if (data.rsi > 50 && data.rsi < 70) score += 8;
-
-    if (data.macd > 0) score += 8;
-
-    if (data.newsScore > 70) score += 6;
-
-    if (data.sentiment > 60) score += 5;
-
-    if (data.volatility > 70) score -= 10;
-
-    if (score > 100) score = 100;
-
-    String decision;
-
-    if (score >= 85) {
-      decision = "GÜÇLÜ AL";
-    } else if (score >= 70) {
-      decision = "AL";
-    } else if (score >= 55) {
-      decision = "İZLE";
-    } else {
-      decision = "BEKLE";
+    if (consensus.smartMoneyScore >= 85) {
+      comments.add(
+        'Smart Money tarafında güçlü alımlar devam ediyor.',
+      );
+    } else if (consensus.smartMoneyScore <= 45) {
+      comments.add(
+        'Kurumsal para çıkışı dikkat çekiyor.',
+      );
     }
 
+    if (consensus.technicalScore >= 85) {
+      comments.add(
+        'Teknik görünüm yukarı yönü destekliyor.',
+      );
+    } else {
+      comments.add(
+        'Teknik görünüm henüz tam güç kazanmadı.',
+      );
+    }
+
+    if (consensus.newsScore >= 80) {
+      comments.add(
+        'Haber akışı pozitif tarafta.',
+      );
+    }
+
+    if (consensus.momentumScore >= 80) {
+      comments.add(
+        'Momentum alıcıları destekliyor.',
+      );
+    }
+
+    if (consensus.riskScore < 60) {
+      comments.add(
+        'Volatilite nedeniyle risk yükselmiş durumda.',
+      );
+    }
+
+    if (consensus.gameTheoryScore >= 90) {
+      comments.add(
+        'Game Theory analizine göre büyük oyuncular pozisyon biriktiriyor olabilir.',
+      );
+    }
+
+    final explanation = comments.join(' ');
+
     return AiDecision(
-      pusuScore: score,
-      decision: decision,
-      explanation:
-          "Karar Smart Money, RSI, MACD, EMA, Haber Skoru ve Para Akışı analiz edilerek üretildi.",
-      confidence: score,
-      risk: score > 80 ? "Düşük" : "Orta",
+      pusuScore: consensus.score,
+      decision: consensus.decision,
+      confidence: consensus.confidence,
+      risk: consensus.riskScore >= 70 ? 'Düşük' : 'Orta',
+      explanation: explanation,
     );
   }
 }

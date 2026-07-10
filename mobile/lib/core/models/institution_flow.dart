@@ -1,19 +1,13 @@
-class InstitutionFlow{
-
+class InstitutionFlow {
   final String institution;
-
-  final double amount;
-
-  final bool buy;
+  final double buy;
+  final double sell;
+  final double net;
 
   const InstitutionFlow({
-
     required this.institution,
-
-    required this.amount,
-
     required this.buy,
-
+    required this.sell,
+    required this.net,
   });
-
 }
