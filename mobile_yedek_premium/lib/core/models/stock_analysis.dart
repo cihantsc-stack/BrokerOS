@@ -1,0 +1,64 @@
+class StockAnalysis {
+  final String symbol;
+
+  final String company;
+
+  final int aiScore;
+
+  final String decision;
+
+  final double entry;
+
+  final double target1;
+
+  final double target2;
+
+  final double stop;
+
+  final int confidence;
+
+  final String risk;
+
+  final List<String> reasons;
+
+  // --------- YENİ ---------
+
+  final double? lastPrice;
+
+  final double? dailyChange;
+
+  final double? volume;
+
+  final String? firstInstitution;
+
+  final String? secondInstitution;
+
+  final String? thirdInstitution;
+
+  final double? smartMoneyFlow;
+
+  // ------------------------
+
+  const StockAnalysis({
+    required this.symbol,
+    required this.company,
+    required this.aiScore,
+    required this.decision,
+    required this.entry,
+    required this.target1,
+    required this.target2,
+    required this.stop,
+    required this.confidence,
+    required this.risk,
+    required this.reasons,
+
+    // yeni alanlar
+    this.lastPrice,
+    this.dailyChange,
+    this.volume,
+    this.firstInstitution,
+    this.secondInstitution,
+    this.thirdInstitution,
+    this.smartMoneyFlow,
+  });
+}

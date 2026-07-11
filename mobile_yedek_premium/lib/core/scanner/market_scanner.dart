@@ -1,0 +1,77 @@
+import '../models/stock_analysis.dart';
+
+class MarketScanner {
+  static List<StockAnalysis> scan() {
+    return const [
+      StockAnalysis(
+        symbol: "ASELS",
+        company: "ASELSAN",
+        aiScore: 94,
+        decision: "GÜÇLÜ AL",
+        entry: 148.20,
+        target1: 153.80,
+        target2: 159.40,
+        stop: 145.40,
+        confidence: 92,
+        risk: "Orta",
+        lastPrice: 149.65,
+        dailyChange: 2.18,
+        volume: 1845000000,
+        firstInstitution: "İş Yatırım",
+        secondInstitution: "Ak Yatırım",
+        thirdInstitution: "Yapı Kredi",
+        smartMoneyFlow: 1240000000,
+        reasons: [
+          "Smart Money",
+          "RSI",
+          "MACD",
+        ],
+      ),
+      StockAnalysis(
+        symbol: "THYAO",
+        company: "Türk Hava Yolları",
+        aiScore: 89,
+        decision: "AL",
+        entry: 331,
+        target1: 340,
+        target2: 352,
+        stop: 323,
+        confidence: 88,
+        risk: "Orta",
+        lastPrice: 333.20,
+        dailyChange: 1.36,
+        volume: 1280000000,
+        firstInstitution: "İş Yatırım",
+        secondInstitution: "Deniz Yatırım",
+        thirdInstitution: "Ak Yatırım",
+        smartMoneyFlow: 760000000,
+        reasons: [
+          "EMA20",
+          "Kurumsal Para",
+        ],
+      ),
+      StockAnalysis(
+        symbol: "GARAN",
+        company: "Garanti BBVA",
+        aiScore: 84,
+        decision: "İZLE",
+        entry: 132,
+        target1: 138,
+        target2: 144,
+        stop: 128,
+        confidence: 80,
+        risk: "Düşük",
+        lastPrice: 133.40,
+        dailyChange: 0.84,
+        volume: 940000000,
+        firstInstitution: "Yapı Kredi",
+        secondInstitution: "İş Yatırım",
+        thirdInstitution: "Ak Yatırım",
+        smartMoneyFlow: 420000000,
+        reasons: [
+          "Fon Girişi",
+        ],
+      ),
+    ];
+  }
+}

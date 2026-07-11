@@ -1,0 +1,100 @@
+import '../models/stock_analysis.dart';
+
+class MarketScanner {
+  static List<StockAnalysis> scan() {
+    return const [
+      StockAnalysis(
+        symbol: "ASELS",
+        company: "ASELSAN",
+        aiScore: 94,
+        decision: "GÜÇLÜ AL",
+        entry: 148.20,
+        target1: 153.80,
+        target2: 159.40,
+        stop: 145.40,
+        confidence: 92,
+        risk: "Orta",
+        reasons: [
+          "Smart Money",
+          "RSI",
+          "MACD",
+        ],
+        lastPrice: 149.65,
+        dailyChange: 2.18,
+        volume: 4850000000,
+        firstInstitution: "İş Yatırım",
+        secondInstitution: "Ak Yatırım",
+        thirdInstitution: "Yapı Kredi",
+        smartMoneyFlow: 1240000000,
+
+        technicalScore: 94,
+        smartMoneyScore: 96,
+        institutionalScore: 92,
+        newsScore: 88,
+        riskScore: 82,
+        momentumScore: 91,
+      ),
+
+      StockAnalysis(
+        symbol: "THYAO",
+        company: "Türk Hava Yolları",
+        aiScore: 89,
+        decision: "AL",
+        entry: 331.00,
+        target1: 340.00,
+        target2: 352.00,
+        stop: 323.00,
+        confidence: 88,
+        risk: "Orta",
+        reasons: [
+          "EMA20",
+          "Kurumsal Para",
+        ],
+        lastPrice: 332.40,
+        dailyChange: 1.64,
+        volume: 3920000000,
+        firstInstitution: "Garanti",
+        secondInstitution: "İş Yatırım",
+        thirdInstitution: "Deniz",
+        smartMoneyFlow: 870000000,
+
+        technicalScore: 88,
+        smartMoneyScore: 90,
+        institutionalScore: 89,
+        newsScore: 84,
+        riskScore: 81,
+        momentumScore: 86,
+      ),
+
+      StockAnalysis(
+        symbol: "GARAN",
+        company: "Garanti BBVA",
+        aiScore: 84,
+        decision: "İZLE",
+        entry: 132.00,
+        target1: 138.00,
+        target2: 144.00,
+        stop: 128.00,
+        confidence: 80,
+        risk: "Düşük",
+        reasons: [
+          "Fon Girişi",
+        ],
+        lastPrice: 133.20,
+        dailyChange: 0.82,
+        volume: 2710000000,
+        firstInstitution: "Yapı Kredi",
+        secondInstitution: "Ak",
+        thirdInstitution: "QNB",
+        smartMoneyFlow: 510000000,
+
+        technicalScore: 80,
+        smartMoneyScore: 83,
+        institutionalScore: 85,
+        newsScore: 82,
+        riskScore: 90,
+        momentumScore: 79,
+      ),
+    ];
+  }
+}
