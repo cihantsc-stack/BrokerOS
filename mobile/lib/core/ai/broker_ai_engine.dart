@@ -4,50 +4,33 @@ import '../engine/broker_consensus_engine.dart';
 import '../models/market_snapshot.dart';
 
 class BrokerAiEngine {
-  static AiDecision analyze(
-    MarketSnapshot data,
-  ) {
-    final BrokerConsensus consensus =
-        BrokerConsensusEngine.calculate(data);
+  static AiDecision analyze(MarketSnapshot data) {
+    final BrokerConsensus consensus = BrokerConsensusEngine.calculate(data);
 
     final List<String> comments = [];
 
     if (consensus.smartMoneyScore >= 85) {
-      comments.add(
-        'Smart Money tarafında güçlü alımlar devam ediyor.',
-      );
+      comments.add('Smart Money tarafında güçlü alımlar devam ediyor.');
     } else if (consensus.smartMoneyScore <= 45) {
-      comments.add(
-        'Kurumsal para çıkışı dikkat çekiyor.',
-      );
+      comments.add('Kurumsal para çıkışı dikkat çekiyor.');
     }
 
     if (consensus.technicalScore >= 85) {
-      comments.add(
-        'Teknik görünüm yukarı yönü destekliyor.',
-      );
+      comments.add('Teknik görünüm yukarı yönü destekliyor.');
     } else {
-      comments.add(
-        'Teknik görünüm henüz tam güç kazanmadı.',
-      );
+      comments.add('Teknik görünüm henüz tam güç kazanmadı.');
     }
 
     if (consensus.newsScore >= 80) {
-      comments.add(
-        'Haber akışı pozitif tarafta.',
-      );
+      comments.add('Haber akışı pozitif tarafta.');
     }
 
     if (consensus.momentumScore >= 80) {
-      comments.add(
-        'Momentum alıcıları destekliyor.',
-      );
+      comments.add('Momentum alıcıları destekliyor.');
     }
 
     if (consensus.riskScore < 60) {
-      comments.add(
-        'Volatilite nedeniyle risk yükselmiş durumda.',
-      );
+      comments.add('Volatilite nedeniyle risk yükselmiş durumda.');
     }
 
     if (consensus.gameTheoryScore >= 90) {

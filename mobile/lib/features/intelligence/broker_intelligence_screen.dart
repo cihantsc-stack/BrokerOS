@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ai/stock_decision_engine.dart';
 import '../../core/engine/broker_engine.dart';
+import '../../core/models/ai_decision.dart';
 import '../../core/models/stock_analysis.dart';
 import '../../shared/design/broker_colors.dart';
 import '../../shared/glossary/interactive_glossary_text.dart';
 import '../../shared/widgets/broker_card.dart';
 import '../../shared/widgets/broker_page.dart';
+import 'widgets/ai_confidence_card.dart';
+import 'widgets/ai_mission_card.dart';
+import 'widgets/ai_timeline_card.dart';
+import 'widgets/ai_warning_card.dart';
 
 class BrokerIntelligenceScreen extends StatelessWidget {
   final String symbol;
@@ -17,10 +23,12 @@ class BrokerIntelligenceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stock = BrokerEngine.run().firstWhere(
+    final analyses = BrokerEngine.run();
+    final stock = analyses.firstWhere(
       (item) => item.symbol == symbol,
-      orElse: () => BrokerEngine.run().first,
+      orElse: () => analyses.first,
     );
+    final aiDecision = StockDecisionEngine.analyze(stock);
 
     return Scaffold(
       backgroundColor: BrokerColors.background,
@@ -39,6 +47,14 @@ class BrokerIntelligenceScreen extends StatelessWidget {
             const SizedBox(height: 10),
             _TopIdentity(stock: stock),
             const SizedBox(height: 18),
+            AiConfidenceCard(decision: aiDecision),
+            const SizedBox(height: 16),
+            AiMissionCard(decision: aiDecision),
+            const SizedBox(height: 16),
+            AiTimelineCard(timeline: aiDecision.timeline),
+            const SizedBox(height: 16),
+            AiWarningCard(decision: aiDecision),
+            const SizedBox(height: 16),
             _DecisionHero(stock: stock),
             const SizedBox(height: 16),
             _LiveChartCard(stock: stock),
