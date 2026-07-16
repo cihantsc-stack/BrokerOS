@@ -12,6 +12,9 @@ import 'widgets/ai_confidence_card.dart';
 import 'widgets/ai_mission_card.dart';
 import 'widgets/ai_timeline_card.dart';
 import 'widgets/ai_warning_card.dart';
+import 'widgets/ai_morning_brief_card.dart';
+import 'widgets/ai_decision_change_card.dart';
+import 'widgets/ai_confidence_history_card.dart';
 
 class BrokerIntelligenceScreen extends StatelessWidget {
   final String symbol;
@@ -47,6 +50,12 @@ class BrokerIntelligenceScreen extends StatelessWidget {
             const SizedBox(height: 10),
             _TopIdentity(stock: stock),
             const SizedBox(height: 18),
+            AiMorningBriefCard(stock: stock, decision: aiDecision),
+            const SizedBox(height: 16),
+            AiDecisionChangeCard(stock: stock, decision: aiDecision),
+            const SizedBox(height: 16),
+            AiConfidenceHistoryCard(decision: aiDecision),
+            const SizedBox(height: 16),
             AiConfidenceCard(decision: aiDecision),
             const SizedBox(height: 16),
             AiMissionCard(decision: aiDecision),
