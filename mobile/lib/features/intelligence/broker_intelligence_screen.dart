@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ai/council/broker_council_engine.dart';
 import '../../core/ai/stock_decision_engine.dart';
 import '../../core/engine/broker_engine.dart';
 import '../../core/models/ai_decision.dart';
@@ -12,9 +13,14 @@ import 'widgets/ai_confidence_card.dart';
 import 'widgets/ai_mission_card.dart';
 import 'widgets/ai_timeline_card.dart';
 import 'widgets/ai_warning_card.dart';
+import 'widgets/broker_council_card.dart';
 import 'widgets/ai_morning_brief_card.dart';
 import 'widgets/ai_decision_change_card.dart';
 import 'widgets/ai_confidence_history_card.dart';
+import 'widgets/ai_action_center_card.dart';
+import 'widgets/ai_event_log_card.dart';
+import 'widgets/ai_live_status_card.dart';
+import 'widgets/ai_pulse_card.dart';
 
 class BrokerIntelligenceScreen extends StatelessWidget {
   final String symbol;
@@ -32,6 +38,7 @@ class BrokerIntelligenceScreen extends StatelessWidget {
       orElse: () => analyses.first,
     );
     final aiDecision = StockDecisionEngine.analyze(stock);
+    final council = BrokerCouncilEngine.evaluate(stock);
 
     return Scaffold(
       backgroundColor: BrokerColors.background,
@@ -50,6 +57,16 @@ class BrokerIntelligenceScreen extends StatelessWidget {
             const SizedBox(height: 10),
             _TopIdentity(stock: stock),
             const SizedBox(height: 18),
+            BrokerCouncilCard(result: council),
+            const SizedBox(height: 16),
+            AiLiveStatusCard(stock: stock, decision: aiDecision),
+            const SizedBox(height: 16),
+            AiPulseCard(stock: stock, decision: aiDecision),
+            const SizedBox(height: 16),
+            AiActionCenterCard(stock: stock, decision: aiDecision),
+            const SizedBox(height: 16),
+            AiEventLogCard(stock: stock, decision: aiDecision),
+            const SizedBox(height: 16),
             AiMorningBriefCard(stock: stock, decision: aiDecision),
             const SizedBox(height: 16),
             AiDecisionChangeCard(stock: stock, decision: aiDecision),
