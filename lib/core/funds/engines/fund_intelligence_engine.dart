@@ -1,10 +1,14 @@
+import '../../kap_intelligence/fund_kap_intelligence_service.dart';
 import '../models/fund_intelligence_result.dart';
 import '../models/fund_metrics_result.dart';
 
 class FundIntelligenceEngine {
   const FundIntelligenceEngine();
 
-  FundIntelligenceResult evaluate(FundMetricsResult metrics) {
+  FundIntelligenceResult evaluate(
+    FundMetricsResult metrics, {
+    FundKapIntelligenceResult kap = FundKapIntelligenceResult.empty,
+  }) {
     if (!metrics.available) {
       return const FundIntelligenceResult.dataWaiting();
     }
@@ -25,44 +29,73 @@ class FundIntelligenceEngine {
     final vol = metrics.annualizedVolatility;
     final dd = metrics.maxDrawdown?.abs();
     if (vol != null) {
-      if (vol >= 40) risk -= 30;
-      else if (vol >= 20) risk -= 15;
-      else strengths.add('Fiyat dalgalanmasi gorece kontrollu.');
+      if (vol >= 40) {
+        risk -= 30;
+      } else if (vol >= 20) {
+        risk -= 15;
+      } else {
+        strengths.add('Fiyat dalgalanması görece kontrollü.');
+      }
     }
     if (dd != null) {
-      if (dd >= 30) risk -= 30;
-      else if (dd >= 15) risk -= 15;
-      else strengths.add('Gecmis maksimum kayip sinirli kalmis.');
+      if (dd >= 30) {
+        risk -= 30;
+      } else if (dd >= 15) {
+        risk -= 15;
+      } else {
+        strengths.add('Geçmiş maksimum kayıp sınırlı kalmış.');
+      }
     }
     risk = risk.clamp(0, 100);
     layers['risk'] = risk;
 
     if ((metrics.return3M ?? 0) > 0 && (metrics.return6M ?? 0) > 0) {
-      strengths.add('Getiri tek bir kisa doneme dayanmiyor.');
+      strengths.add('Getiri tek bir kısa döneme dayanmıyor.');
     }
     if ((metrics.return1Y ?? 0) < 0) {
-      risks.add('Bir yillik performans negatif.');
+      risks.add('Bir yıllık performans negatif.');
     }
     if (metrics.riskLevel == 'YUKSEK') {
-      risks.add('Gecmis fiyat serisinde yuksek dalgalanma veya sert dusus var.');
+      risks.add('Geçmiş fiyat serisinde yüksek dalgalanma veya sert düşüş var.');
     }
 
-    final score = ((performance * 0.55) + (risk * 0.45)).round().clamp(0, 100);
+    var score = ((performance * 0.55) + (risk * 0.45)).round().clamp(0, 100);
+
+    if (kap.hasData) {
+      layers['kap'] = kap.score;
+      score = ((performance * 0.45) + (risk * 0.35) + (kap.score * 0.20))
+          .round()
+          .clamp(0, 100);
+
+      final sentiment = kap.sentiment.toUpperCase();
+      if (sentiment.contains('OLUMLU') || kap.score >= 65) {
+        strengths.add('Son gerçek fon KAP bildirimi CROC değerlendirmesini destekliyor.');
+      }
+      if (sentiment.contains('OLUMSUZ') || kap.score <= 35) {
+        risks.add('Son gerçek fon KAP bildirimi ek risk işareti taşıyor.');
+      }
+    }
+
     final verdict = score >= 75
-        ? 'GUCLU ADAY'
+        ? 'GÜÇLÜ ADAY'
         : score >= 60
             ? 'UYGUN ADAY'
             : score >= 45
-                ? 'TEMKINLI INCELE'
-                : 'ZAYIF GORUNUM';
+                ? 'TEMKİNLİ İNCELE'
+                : 'ZAYIF GÖRÜNÜM';
 
-    final confidence = metrics.observationCount >= 200 ? 'ORTA' : 'DUSUK';
+    final confidence = kap.hasData && metrics.observationCount >= 200
+        ? 'YÜKSEK'
+        : metrics.observationCount >= 200
+            ? 'ORTA'
+            : 'DÜŞÜK';
+
     final unavailable = <String>[
-      'KAP fon bildirimleri',
-      'portfoy dagilimi',
-      'portfoy hisseleri CROC etkisi',
+      if (!kap.hasData) 'KAP fon bildirimleri',
+      'portföy dağılımı',
+      'portföy hisseleri CROC etkisi',
       'makro rejim',
-      'fon para akisi',
+      'fon para akışı',
     ];
 
     return FundIntelligenceResult(
@@ -70,7 +103,9 @@ class FundIntelligenceEngine {
       score: score,
       verdict: verdict,
       confidence: confidence,
-      summary: 'Bu on sonuc yalnizca gercek TEFAS fiyat gecmisi ve risk metriklerinden uretilmistir. Eksik katmanlar skoru olumlu varsayimla sisirmez.',
+      summary: kap.hasData
+          ? 'Gerçek TEFAS fiyat/risk verileri ve erişilebilen gerçek fon KAP bildirimi birlikte değerlendirildi. Eksik katmanlar skoru şişirmez.'
+          : 'Sonuç gerçek TEFAS fiyat geçmişi ve risk metriklerinden üretildi. Fon KAP verisi bulunamazsa olumlu varsayım yapılmaz.',
       strengths: List.unmodifiable(strengths),
       risks: List.unmodifiable(risks),
       layerScores: Map.unmodifiable(layers),
