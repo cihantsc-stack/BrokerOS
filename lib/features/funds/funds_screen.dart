@@ -20,7 +20,6 @@ class _FundsScreenState extends State<FundsScreen> {
   FundHistoryResult? _history;
   FundMetricsResult? _metrics;
   bool _loading = false;
-  bool _detailedMode = false;
   String? _error;
 
   @override
@@ -70,7 +69,19 @@ class _FundsScreenState extends State<FundsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _pageHeader(),
+              const Text(
+                'Fon Merkezi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Önce sonucu gör, istersen ayrıntıya in. Tüm hesaplamalar gerçek TEFAS fiyat serisine dayanır.',
+                style: TextStyle(color: Color(0xFF91A69D), fontSize: 13),
+              ),
               const SizedBox(height: 18),
               _searchBar(),
               const SizedBox(height: 18),
@@ -85,89 +96,13 @@ class _FundsScreenState extends State<FundsScreen> {
                 _performanceGrid(metrics),
                 const SizedBox(height: 14),
                 _riskPanel(metrics),
-                if (_detailedMode) ...[
-                  const SizedBox(height: 14),
-                  _professionalDetail(history, metrics),
-                  const SizedBox(height: 14),
-                  _dataTransparency(history, metrics),
-                ],
                 const SizedBox(height: 14),
-                _waitingPanel(),
+                _detailExpansion(history, metrics),
               ],
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _pageHeader() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 650;
-        final title = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Fon Merkezi',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _detailedMode
-                  ? 'Profesyonel görünüm: gerçek TEFAS verisi, ham metrikler ve veri şeffaflığı.'
-                  : 'Basit görünüm: fonu hiç bilmeyen biri için sade ve anlaşılır özet.',
-              style: const TextStyle(color: Color(0xFF91A69D), fontSize: 13),
-            ),
-          ],
-        );
-
-        final mode = SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment<bool>(
-              value: false,
-              icon: Icon(Icons.lightbulb_outline_rounded),
-              label: Text('Basit'),
-            ),
-            ButtonSegment<bool>(
-              value: true,
-              icon: Icon(Icons.analytics_outlined),
-              label: Text('Detaylı'),
-            ),
-          ],
-          selected: {_detailedMode},
-          onSelectionChanged: (value) {
-            setState(() => _detailedMode = value.first);
-          },
-          style: ButtonStyle(
-            foregroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? const Color(0xFF70F4AD)
-                  : const Color(0xFF91A69D),
-            ),
-          ),
-        );
-
-        if (compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [title, const SizedBox(height: 12), mode],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: title),
-            const SizedBox(width: 16),
-            mode,
-          ],
-        );
-      },
     );
   }
 
@@ -199,13 +134,13 @@ class _FundsScreenState extends State<FundsScreen> {
                   ),
             filled: true,
             fillColor: const Color(0xFF07130F),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF1E5C43)),
-            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Color(0xFF1E5C43)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFF70F4AD)),
             ),
           ),
         );
@@ -244,15 +179,14 @@ class _FundsScreenState extends State<FundsScreen> {
   }
 
   Widget _fundHeader(FundHistoryResult history) {
-    final latest = history.prices.isEmpty ? null : history.prices.last;
-
+    final latest = history.latest;
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
             spacing: 10,
-            runSpacing: 10,
+            runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Container(
@@ -280,15 +214,8 @@ class _FundsScreenState extends State<FundsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Son fiyat',
-            style: TextStyle(color: Color(0xFF91A69D), fontSize: 11),
-          ),
-          const SizedBox(height: 4),
           Text(
-            latest == null
-                ? 'Fiyat verisi yok'
-                : '${latest.price.toStringAsFixed(6)} TL',
+            latest == null ? 'Fiyat verisi yok' : '${latest.price.toStringAsFixed(6)} TL',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 27,
@@ -310,39 +237,22 @@ class _FundsScreenState extends State<FundsScreen> {
     final oneYear = metrics.return1Y;
     final oneMonth = metrics.return1M;
 
-    String headline;
-    String explanation;
-    IconData icon;
+    final headline = switch (risk) {
+      'YUKSEK' => 'Dalgalı bir fon',
+      'ORTA' => 'Orta seviyede dalgalanma',
+      'DUSUK' => 'Görece daha sakin hareket',
+      _ => 'Yorum için veri bekleniyor',
+    };
 
-    if (!metrics.available) {
-      headline = 'Yorum için veri bekleniyor';
-      explanation = 'Gerçek fiyat serisi gelmeden sade yorum üretilmez.';
-      icon = Icons.hourglass_empty_rounded;
-    } else if (risk == 'YUKSEK') {
-      headline = 'Dalgalı bir fon';
-      explanation =
-          'Geçmişte sert iniş çıkışlar yaşamış. Yüksek getiri ihtimali kadar kayıp ihtimali de önemlidir.';
-      icon = Icons.warning_amber_rounded;
-    } else if (risk == 'ORTA') {
-      headline = 'Orta seviyede dalgalanma';
-      explanation =
-          'Fon tamamen sakin değil. Tek günlük harekete bakmak yerine birkaç aylık tabloyu birlikte değerlendirmek daha sağlıklı.';
-      icon = Icons.balance_rounded;
-    } else {
-      headline = 'Görece daha sakin hareket';
-      explanation =
-          'Geçmiş fiyat hareketleri daha sınırlı dalgalanmış. Bu yine de gelecekte zarar olmayacağı anlamına gelmez.';
-      icon = Icons.shield_outlined;
-    }
-
-    final oneYearText = oneYear == null
-        ? '1 yıllık veri yok'
-        : oneYear >= 0
-            ? '1 yılda ${_signedPercent(oneYear)}'
-            : '1 yılda ${oneYear.toStringAsFixed(2)}%';
-    final oneMonthText = oneMonth == null
-        ? '1 aylık veri yok'
-        : '1 ayda ${_signedPercent(oneMonth)}';
+    final explanation = switch (risk) {
+      'YUKSEK' =>
+        'Geçmişte sert iniş çıkışlar yaşamış. Getiri kadar olası kayıp da önemlidir.',
+      'ORTA' =>
+        'Fon tamamen sakin değil. Tek günlük harekete değil, birkaç aylık tabloya birlikte bak.',
+      'DUSUK' =>
+        'Geçmiş fiyat hareketleri daha sınırlı dalgalanmış. Bu, gelecekte zarar olmayacağı anlamına gelmez.',
+      _ => 'Gerçek fiyat serisi gelmeden sade yorum üretilmez.',
+    };
 
     return _card(
       child: Column(
@@ -356,60 +266,33 @@ class _FundsScreenState extends State<FundsScreen> {
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF103E2C),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: const Color(0xFF70F4AD)),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      headline,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      explanation,
-                      style: const TextStyle(
-                        color: Color(0xFF9BAEA7),
-                        fontSize: 12,
-                        height: 1.45,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(height: 12),
+          Text(
+            headline,
+            style: const TextStyle(
+              color: Color(0xFF70F4AD),
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 6),
+          Text(
+            explanation,
+            style: const TextStyle(
+              color: Color(0xFF9BAEA7),
+              fontSize: 12,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _plainChip(oneMonthText),
-              _plainChip(oneYearText),
+              _plainChip(oneMonth == null ? '1 aylık veri yok' : '1 ay ${_signedPercent(oneMonth)}'),
+              _plainChip(oneYear == null ? '1 yıllık veri yok' : '1 yıl ${_signedPercent(oneYear)}'),
               _plainChip('Risk: $risk'),
             ],
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Bu özet yatırım tavsiyesi değildir; gerçek TEFAS verisini anlaşılır dile çevirir.',
-            style: TextStyle(color: Color(0xFF71877D), fontSize: 10.5),
           ),
         ],
       ),
@@ -426,16 +309,19 @@ class _FundsScreenState extends State<FundsScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final columns = width >= 850 ? 4 : 2;
-        final itemWidth = (width - ((columns - 1) * 10)) / columns;
-
+        final columns = constraints.maxWidth >= 850 ? 4 : 2;
+        final itemWidth =
+            (constraints.maxWidth - ((columns - 1) * 10)) / columns;
         return Wrap(
           spacing: 10,
           runSpacing: 10,
           children: items.map((item) {
             final value = item.value;
-            final positive = value != null && value >= 0;
+            final color = value == null
+                ? Colors.white
+                : value >= 0
+                    ? const Color(0xFF70F4AD)
+                    : const Color(0xFFFF6673);
             return SizedBox(
               width: itemWidth,
               child: _card(
@@ -453,11 +339,7 @@ class _FundsScreenState extends State<FundsScreen> {
                     Text(
                       value == null ? 'VERİ YOK' : _signedPercent(value),
                       style: TextStyle(
-                        color: value == null
-                            ? Colors.white
-                            : positive
-                                ? const Color(0xFF70F4AD)
-                                : const Color(0xFFFF7777),
+                        color: color,
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
                       ),
@@ -473,13 +355,6 @@ class _FundsScreenState extends State<FundsScreen> {
   }
 
   Widget _riskPanel(FundMetricsResult metrics) {
-    final plainRisk = switch (metrics.riskLevel) {
-      'YUKSEK' => 'Sert dalgalanabilir',
-      'ORTA' => 'Orta dalgalanma',
-      'DUSUK' => 'Görece daha sakin',
-      _ => 'Veri bekleniyor',
-    };
-
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,28 +369,80 @@ class _FundsScreenState extends State<FundsScreen> {
           ),
           const SizedBox(height: 14),
           _metricRow('Risk seviyesi', metrics.riskLevel),
-          if (!_detailedMode)
-            _metricRow('Basit anlatım', plainRisk),
-          if (_detailedMode) ...[
-            _metricRow(
-              'Yıllıklandırılmış volatilite',
-              _percent(metrics.annualizedVolatility),
-            ),
-            _metricRow('Maksimum düşüş', _percent(metrics.maxDrawdown)),
-            _metricRow('Gözlem sayısı', metrics.observationCount.toString()),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            _detailedMode
-                ? 'Risk seviyesi gerçek TEFAS fiyat serisinden hesaplanan volatilite ve maksimum düşüşe dayanır.'
-                : 'Detaylı görünümü açarsan volatilite ve maksimum düşüş gibi profesyonel metrikleri de görebilirsin.',
-            style: const TextStyle(
-              color: Color(0xFF789087),
-              fontSize: 11,
-              height: 1.4,
-            ),
-          ),
+          _metricRow('Yıllıklandırılmış volatilite', _percent(metrics.annualizedVolatility)),
+          _metricRow('Maksimum düşüş', _percent(metrics.maxDrawdown)),
+          _metricRow('Gözlem sayısı', metrics.observationCount.toString()),
         ],
+      ),
+    );
+  }
+
+  Widget _detailExpansion(
+    FundHistoryResult history,
+    FundMetricsResult metrics,
+  ) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        dividerColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFF06130F),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF1C4B39)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: ExpansionTile(
+            initiallyExpanded: false,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            iconColor: const Color(0xFF70F4AD),
+            collapsedIconColor: const Color(0xFF70F4AD),
+            leading: Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFF70F4AD).withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.tune_rounded,
+                color: Color(0xFF70F4AD),
+                size: 20,
+              ),
+            ),
+            title: const Text(
+              'DETAYLI ANALİZİ GÖR',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: .7,
+              ),
+            ),
+            subtitle: const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Performans • risk • veri aralığı • TEFAS kaynağı • gelişmiş fon katmanları',
+                style: TextStyle(
+                  color: Color(0xFF8FA79D),
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            children: [
+              _professionalDetail(history, metrics),
+              const SizedBox(height: 12),
+              _waitingPanel(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -524,9 +451,8 @@ class _FundsScreenState extends State<FundsScreen> {
     FundHistoryResult history,
     FundMetricsResult metrics,
   ) {
-    final firstDate = history.prices.isEmpty ? null : history.prices.first.date;
-    final lastDate = history.prices.isEmpty ? null : history.prices.last.date;
-
+    final first = history.prices.isEmpty ? null : history.prices.first;
+    final last = history.prices.isEmpty ? null : history.prices.last;
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,72 +461,22 @@ class _FundsScreenState extends State<FundsScreen> {
             'Profesyonel Detay',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Ham metrikler ve hesaplamada kullanılan fiyat serisi bilgileri.',
-            style: TextStyle(color: Color(0xFF91A69D), fontSize: 11),
-          ),
-          const SizedBox(height: 14),
-          _metricRow('1A getiri', _percent(metrics.return1M, signed: true)),
-          _metricRow('3A getiri', _percent(metrics.return3M, signed: true)),
-          _metricRow('6A getiri', _percent(metrics.return6M, signed: true)),
-          _metricRow('1Y getiri', _percent(metrics.return1Y, signed: true)),
-          _metricRow(
-            'Yıllıklandırılmış volatilite',
-            _percent(metrics.annualizedVolatility),
-          ),
-          _metricRow('Maksimum düşüş', _percent(metrics.maxDrawdown)),
-          _metricRow('Risk sınıfı', metrics.riskLevel),
-          _metricRow('Gözlem', metrics.observationCount.toString()),
-          _metricRow(
-            'Seri başlangıcı',
-            firstDate == null ? 'VERİ YOK' : _date(firstDate),
-          ),
-          _metricRow(
-            'Son gözlem',
-            lastDate == null ? 'VERİ YOK' : _date(lastDate),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _dataTransparency(
-    FundHistoryResult history,
-    FundMetricsResult metrics,
-  ) {
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Veri Şeffaflığı',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 12),
+          _metricRow('1 Ay getiri', _percentSigned(metrics.return1M)),
+          _metricRow('3 Ay getiri', _percentSigned(metrics.return3M)),
+          _metricRow('6 Ay getiri', _percentSigned(metrics.return6M)),
+          _metricRow('1 Yıl getiri', _percentSigned(metrics.return1Y)),
+          _metricRow('Yıllık volatilite', _percent(metrics.annualizedVolatility)),
+          _metricRow('Maksimum düşüş', _percent(metrics.maxDrawdown)),
+          _metricRow('İlk veri tarihi', first == null ? 'VERİ YOK' : _date(first.date)),
+          _metricRow('Son veri tarihi', last == null ? 'VERİ YOK' : _date(last.date)),
+          _metricRow('Gözlem sayısı', '${metrics.observationCount}'),
           _metricRow('Kaynak', history.provider),
-          _metricRow('Fon durumu', history.status),
-          _metricRow('Metrik durumu', metrics.status),
-          _metricRow('Periyot', '${history.periodMonths} ay'),
-          _metricRow('Gerçek fiyat kaydı', history.prices.length.toString()),
-          const SizedBox(height: 10),
-          const Text(
-            'CROC burada olmayan kurumsal dağılım, fon para akışı veya yatırımcı sınıfı verisini tahmin edip gerçekmiş gibi göstermez.',
-            style: TextStyle(
-              color: Color(0xFFFFC66D),
-              fontSize: 11,
-              height: 1.45,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          _metricRow('Durum', metrics.status),
         ],
       ),
     );
@@ -612,10 +488,10 @@ class _FundsScreenState extends State<FundsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Gelişecek Fon Katmanları',
+            'Gelişmiş Fon Katmanları',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -630,7 +506,7 @@ class _FundsScreenState extends State<FundsScreen> {
           ),
           SizedBox(height: 10),
           Text(
-            'Bu alanlarda gerçek kaynak bağlanmadan skor veya finansal veri üretilmez.',
+            'Gerçek kaynak bağlanmadan skor veya finansal veri üretilmez.',
             style: TextStyle(
               color: Color(0xFFFFC66D),
               fontSize: 12,
@@ -643,43 +519,21 @@ class _FundsScreenState extends State<FundsScreen> {
   }
 
   Widget _statusCard(String message) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 14),
-      child: _card(
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline, color: Color(0xFFFFC66D)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: Color(0xFFD6E1DC),
-                  fontWeight: FontWeight.w700,
-                ),
+    return _card(
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Color(0xFFFFC66D)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Color(0xFFD6E1DC),
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _plainChip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0B2118),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFF1E5C43)),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Color(0xFFB9CEC5),
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -688,6 +542,7 @@ class _FundsScreenState extends State<FundsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Text(
@@ -711,17 +566,39 @@ class _FundsScreenState extends State<FundsScreen> {
     );
   }
 
+  Widget _plainChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A2118),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF1E5C43)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xFFD6E1DC),
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   String _signedPercent(double value) =>
       '${value >= 0 ? '+' : ''}${value.toStringAsFixed(2)}%';
 
-  String _percent(double? value, {bool signed = false}) {
-    if (value == null) return 'VERİ YOK';
-    if (signed) return _signedPercent(value);
-    return '${value.toStringAsFixed(2)}%';
-  }
+  String _percent(double? value) =>
+      value == null ? 'VERİ YOK' : '${value.toStringAsFixed(2)}%';
 
-  String _date(DateTime value) =>
-      '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year}';
+  String _percentSigned(double? value) =>
+      value == null ? 'VERİ YOK' : _signedPercent(value);
+
+  String _date(DateTime value) {
+    final d = value.day.toString().padLeft(2, '0');
+    final m = value.month.toString().padLeft(2, '0');
+    return '$d.$m.${value.year}';
+  }
 
   Widget _card({required Widget child}) {
     return Container(
