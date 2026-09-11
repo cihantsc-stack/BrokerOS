@@ -1,0 +1,3 @@
+class GoldAgent {
+  const GoldAgent();
+}

@@ -1,0 +1,3 @@
+class CryptoAgent {
+  const CryptoAgent();
+}

@@ -1,0 +1,3 @@
+class DecisionValidator {
+  const DecisionValidator();
+}

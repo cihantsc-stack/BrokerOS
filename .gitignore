@@ -1,0 +1,132 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Local Netlify folder
+.netlify
+
+# ============================================================
+# CROC LOCAL / BACKUP / GENERATED
+# ============================================================
+_croc_backups/
+backup_*/
+_CROC_BACKUP_*/
+_CROC_QUARANTINE_*/
+_CROC_V*_BACKUP_*/
+_V*_BACKUP_*/
+_QUARANTINE_DUPLICATE_LIB/
+_legacy_archive/
+
+payload/
+premium_installer/
+
+.firebase/
+.wrangler/
+.netlify/
+
+*.zip
+*.ps1
+*.log
+analyze.txt
+*CROC*ANALYZE*.txt
+CROC_RUNTIME_ERROR.txt
+CROC_REPLACEMENT_SCAN.txt
+
+# Local worker / diagnostic backups
+CANLI_KAP_BACKUP.js
+CROC_MKK_*.txt
+CROC_WORKER_*_BACKUP.txt
+CROC_KAP_*.txt
+
+# Root test / stray files
+CROC_KAP_TEST.html
+croc_prediction_ledger_card.dart
+
+# ============================================================
+# CROC SOURCE BACKUP / PATCH COPIES
+# ============================================================
+*.bak
+*.bak_*
+*.backup
+*.backup_*
+*.BACKUP_*
+*.before_*
+*.BEFORE_*
+*.before*
+*.BEFORE*
+*.cleanup_*
+*.cleanup2_*
+*.final3_*
+*.position_*
+*.trade_fix*
+*.v*_backup*
+*.V*_BACKUP*
+*.dynamic_top5_*
+*.first_target_filter_*
+*.entry_filter_*
+*.home_v*_backup_*
+*.menu_backup_*
+*.menu_cleanup_*
+*.test_menu_*
+*.desktop_search_*
+*.daily_change_v*
+*.previous_close_fix_*
+*.all_bist_backup_*
+*.material_fix_*
+*.dart.all_bist_backup_*
+*.dart.dart
+*_BEFORE_*.dart
+*_backup.dart
+*_BACKUP.dart
+*_backup_*.dart
+*_BACKUP_*.dart
+
+# CROC - kalan kaynak ici yedekler
+*.dart.*BACKUP*
+*.dart.*backup*
+*.dart.*BEFORE*
+*.dart.*before*
+*.dart.V*_BEF*
+*.dart.V*_BEFORE*
