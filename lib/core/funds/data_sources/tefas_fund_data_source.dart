@@ -5,6 +5,55 @@ import 'package:http/http.dart' as http;
 import '../models/fund_history_result.dart';
 import '../models/fund_price_point.dart';
 
+class FundSearchItem {
+  final String fundCode;
+  final String fundName;
+  final DateTime? date;
+  final double? price;
+  final int? investorCount;
+  final double? portfolioSize;
+  final bool isFreeFund;
+
+  const FundSearchItem({
+    required this.fundCode,
+    required this.fundName,
+    required this.date,
+    required this.price,
+    required this.investorCount,
+    required this.portfolioSize,
+    required this.isFreeFund,
+  });
+
+  factory FundSearchItem.fromJson(Map<String, dynamic> json) {
+    final code = json['fundCode']?.toString().trim().toUpperCase() ?? '';
+    final name = json['fundName']?.toString().trim() ?? '';
+
+    if (code.isEmpty || name.isEmpty) {
+      throw const FormatException('Gecersiz fon arama kaydi.');
+    }
+
+    return FundSearchItem(
+      fundCode: code,
+      fundName: name,
+      date: DateTime.tryParse(json['date']?.toString() ?? ''),
+      price: _toDouble(json['price']),
+      investorCount: _toInt(json['investorCount']),
+      portfolioSize: _toDouble(json['portfolioSize']),
+      isFreeFund: json['isFreeFund'] == true,
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+}
+
 class TefasFundDataSource {
   static const String _gatewayHost = 'croc-fund-gateway.crocai.workers.dev';
 
@@ -12,6 +61,63 @@ class TefasFundDataSource {
 
   TefasFundDataSource({http.Client? client})
     : _client = client ?? http.Client();
+
+  Future<List<FundSearchItem>> searchFunds(
+    String rawQuery, {
+    int limit = 10,
+  }) async {
+    final query = rawQuery.trim();
+    final safeLimit = limit.clamp(1, 25);
+
+    if (query.isEmpty) {
+      return const <FundSearchItem>[];
+    }
+
+    final uri = Uri.https(_gatewayHost, '/', <String, String>{
+      'action': 'search',
+      'q': query,
+      'limit': safeLimit.toString(),
+    });
+
+    try {
+      final response = await _client
+          .get(
+            uri,
+            headers: const <String, String>{'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200) {
+        return const <FundSearchItem>[];
+      }
+
+      final dynamic decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic> || decoded['available'] != true) {
+        return const <FundSearchItem>[];
+      }
+
+      final rawResults = decoded['results'];
+      if (rawResults is! List) {
+        return const <FundSearchItem>[];
+      }
+
+      final results = <FundSearchItem>[];
+      for (final dynamic item in rawResults) {
+        if (item is! Map) continue;
+        try {
+          results.add(
+            FundSearchItem.fromJson(Map<String, dynamic>.from(item)),
+          );
+        } catch (_) {
+          // Tek bozuk arama kaydi diger gercek TEFAS sonuclarini dusurmesin.
+        }
+      }
+
+      return List<FundSearchItem>.unmodifiable(results);
+    } catch (_) {
+      return const <FundSearchItem>[];
+    }
+  }
 
   Future<FundHistoryResult> fetchHistory(
     String rawFundCode, {
