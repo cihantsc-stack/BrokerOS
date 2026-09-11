@@ -5,6 +5,7 @@ import '../../../core/funds/engines/fund_intelligence_engine.dart';
 import '../../../core/funds/engines/fund_metrics_engine.dart';
 import '../../../core/funds/engines/fund_suitability_engine.dart';
 import '../../../core/funds/models/fund_candidate_result.dart';
+import '../../../core/kap_intelligence/fund_kap_intelligence_service.dart';
 
 class FundFinderSheet extends StatefulWidget {
   final TefasFundDataSource dataSource;
@@ -24,6 +25,8 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
   final FundMetricsEngine _metricsEngine = const FundMetricsEngine();
   final FundIntelligenceEngine _intelligenceEngine = const FundIntelligenceEngine();
   final FundSuitabilityEngine _suitabilityEngine = const FundSuitabilityEngine();
+  final FundKapIntelligenceService _fundKapService =
+      FundKapIntelligenceService.instance;
 
   String _horizon = '3-12 AY';
   String _risk = 'ORTA';
@@ -74,7 +77,11 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
             periodMonths: 12,
           );
           final metrics = _metricsEngine.calculate(history);
-          final intelligence = _intelligenceEngine.evaluate(metrics);
+          final kap = await _fundKapService.analyzeFund(fund.fundCode);
+          final intelligence = _intelligenceEngine.evaluate(
+            metrics,
+            kap: kap,
+          );
           final score = _suitabilityEngine.score(
             metrics: metrics,
             intelligence: intelligence,
@@ -83,18 +90,24 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
             goal: _goal,
           );
 
+          final reasons = <String>[
+            ..._suitabilityEngine.reasons(
+              metrics: metrics,
+              horizon: _horizon,
+              risk: _risk,
+              goal: _goal,
+            ),
+            if (kap.hasData)
+              'Son fon KAP bildirimi de CROC değerlendirmesine dahil edildi.',
+          ];
+
           return FundCandidateResult(
             fund: fund,
             metrics: metrics,
             intelligence: intelligence,
             suitabilityScore: score,
             suitabilityLabel: _suitabilityEngine.label(score),
-            reasons: _suitabilityEngine.reasons(
-              metrics: metrics,
-              horizon: _horizon,
-              risk: _risk,
-              goal: _goal,
-            ),
+            reasons: reasons,
           );
         }),
       );
@@ -108,7 +121,7 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
         _results = usable;
         _summary = usable.isEmpty
             ? 'Gerçek TEFAS geçmişi yeterli aday bulunamadı.'
-            : '${_categoryLabel(query)} grubunda ${usable.length} fon gerçek performans ve risk verileriyle sıralandı.';
+            : '${_categoryLabel(query)} grubunda ${usable.length} fon gerçek performans, risk ve erişilebilen KAP verileriyle sıralandı.';
       });
     } catch (error) {
       if (!mounted) return;
@@ -185,14 +198,16 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
                   ),
                   icon: const Icon(Icons.auto_awesome_rounded),
                   label: Text(
-                    _loading ? 'Fonlar gerçek verilerle analiz ediliyor...' : 'Bana uygun adayları bul',
+                    _loading
+                        ? 'Fonlar gerçek verilerle analiz ediliyor...'
+                        : 'Bana uygun adayları bul',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
               const Text(
-                'Uyum puanı yalnızca mevcut gerçek TEFAS verilerinden hesaplanır. KAP, portföy dağılımı ve makro katmanlar bağlanana kadar olumlu varsayım yapılmaz.',
+                'Uyum puanı yalnızca mevcut gerçek verilerden hesaplanır. KAP verisi yoksa olumlu varsayım yapılmaz; portföy dağılımı ve makro katmanlar bağlandıkça güven artırılır.',
                 style: TextStyle(
                   color: Color(0xFFFFC66D),
                   fontSize: 11,
@@ -203,7 +218,10 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
                 const SizedBox(height: 18),
                 Text(
                   _error!,
-                  style: const TextStyle(color: Color(0xFFFF6673), fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    color: Color(0xFFFF6673),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
               if (_summary != null) ...[
@@ -228,9 +246,13 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
                     iconColor: const Color(0xFF70F4AD),
                     title: Text(
                       'Diğer ${_results.length - 3} adayı gör',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    children: _results.skip(3).map((item) => _resultTile(item)).toList(),
+                    children:
+                        _results.skip(3).map((item) => _resultTile(item)).toList(),
                   ),
                 ],
               ],
@@ -309,43 +331,65 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
                     padding: const EdgeInsets.only(right: 8),
                     child: Text(
                       '#$rank',
-                      style: const TextStyle(color: Color(0xFF70F4AD), fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        color: Color(0xFF70F4AD),
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                   decoration: BoxDecoration(
                     color: const Color(0xFF123A2A),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     item.fund.fundCode,
-                    style: const TextStyle(color: Color(0xFF70F4AD), fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      color: Color(0xFF70F4AD),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '%${item.suitabilityScore} ${item.suitabilityLabel}',
-                  style: const TextStyle(color: Color(0xFF70F4AD), fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: Color(0xFF70F4AD),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 9),
             Text(
               item.fund.fundName,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 8),
             ...item.reasons.map(
               (reason) => Padding(
                 padding: const EdgeInsets.only(bottom: 3),
-                child: Text('• $reason', style: const TextStyle(color: Color(0xFFADC0B8), fontSize: 11)),
+                child: Text(
+                  '• $reason',
+                  style: const TextStyle(
+                    color: Color(0xFFADC0B8),
+                    fontSize: 11,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 6),
             Text(
               '3A ${_percent(metrics.return3M)}  •  6A ${_percent(metrics.return6M)}  •  Risk ${metrics.riskLevel}',
-              style: const TextStyle(color: Color(0xFF91A69D), fontSize: 10),
+              style: const TextStyle(
+                color: Color(0xFF91A69D),
+                fontSize: 10,
+              ),
             ),
           ],
         ),
