@@ -109,7 +109,10 @@ class _FundsScreenState extends State<FundsScreen> {
             controller: _controller,
             textCapitalization: TextCapitalization.characters,
             onSubmitted: _loadFund,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
             decoration: InputDecoration(
               hintText: 'Fon kodu: GBJ, MAC, AFT...',
               hintStyle: const TextStyle(color: Color(0xFF668077)),
@@ -134,7 +137,10 @@ class _FundsScreenState extends State<FundsScreen> {
             backgroundColor: const Color(0xFF1D7A50),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 19),
           ),
-          child: const Text('İncele', style: TextStyle(fontWeight: FontWeight.w900)),
+          child: const Text(
+            'İncele',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
         ),
       ],
     );
@@ -149,29 +155,45 @@ class _FundsScreenState extends State<FundsScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF123A2A),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   history.fundCode,
-                  style: const TextStyle(color: Color(0xFF70F4AD), fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: Color(0xFF70F4AD),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   history.fundName ?? 'Fon adı verisi bekleniyor',
-                  style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           Text(
-            latest == null ? 'Fiyat verisi yok' : '${latest.price.toStringAsFixed(6)} TL',
-            style: const TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900),
+            latest == null
+                ? 'Fiyat verisi yok'
+                : '${latest.price.toStringAsFixed(6)} TL',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 27,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -207,11 +229,23 @@ class _FundsScreenState extends State<FundsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.key, style: const TextStyle(color: Color(0xFF91A69D), fontSize: 12)),
+                    Text(
+                      item.key,
+                      style: const TextStyle(
+                        color: Color(0xFF91A69D),
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text(
-                      value == null ? 'VERİ YOK' : '${value >= 0 ? '+' : ''}${value.toStringAsFixed(2)}%',
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                      value == null
+                          ? 'VERİ YOK'
+                          : '${value >= 0 ? '+' : ''}${value.toStringAsFixed(2)}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
@@ -228,16 +262,30 @@ class _FundsScreenState extends State<FundsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Risk Görünümü', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          const Text(
+            'Risk Görünümü',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 14),
           _metricRow('Risk seviyesi', metrics.riskLevel),
-          _metricRow('Yıllıklandırılmış volatilite', _percent(metrics.annualizedVolatility)),
+          _metricRow(
+            'Yıllıklandırılmış volatilite',
+            _percent(metrics.annualizedVolatility),
+          ),
           _metricRow('Maksimum düşüş', _percent(metrics.maxDrawdown)),
           _metricRow('Gözlem sayısı', metrics.observationCount.toString()),
           const SizedBox(height: 8),
           const Text(
             'Risk seviyesi yalnızca gerçek TEFAS fiyat serisinden hesaplanan volatilite ve maksimum düşüşe dayanır.',
-            style: TextStyle(color: Color(0xFF789087), fontSize: 11, height: 1.4),
+            style: TextStyle(
+              color: Color(0xFF789087),
+              fontSize: 11,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -249,16 +297,31 @@ class _FundsScreenState extends State<FundsScreen> {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('CROC Fon Katmanları', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          Text(
+            'CROC Fon Katmanları',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           SizedBox(height: 12),
           Text(
             'CROC Fon Skoru: VERİ BEKLENİYOR\nPortföy dağılımı: VERİ BEKLENİYOR\nFon para akışı: VERİ BEKLENİYOR\nSerbest fon / nitelikli yatırımcı sınıflaması: VERİ BEKLENİYOR',
-            style: TextStyle(color: Color(0xFF9BAEA7), fontSize: 13, height: 1.7),
+            style: TextStyle(
+              color: Color(0xFF9BAEA7),
+              fontSize: 13,
+              height: 1.7,
+            ),
           ),
           SizedBox(height: 10),
           Text(
             'Bu alanlarda gerçek kaynak bağlanmadan skor veya finansal veri üretilmez.',
-            style: TextStyle(color: Color(0xFFFFC66D), fontSize: 12, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              color: Color(0xFFFFC66D),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -274,7 +337,13 @@ class _FundsScreenState extends State<FundsScreen> {
             const Icon(Icons.info_outline, color: Color(0xFFFFC66D)),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(message, style: const TextStyle(color: Color(0xFFD6E1DC), fontWeight: FontWeight.w700)),
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Color(0xFFD6E1DC),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
@@ -287,14 +356,26 @@ class _FundsScreenState extends State<FundsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: const TextStyle(color: Color(0xFF91A69D)))),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: Color(0xFF91A69D)),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  String _percent(double? value) => value == null ? 'VERİ YOK' : '${value.toStringAsFixed(2)}%';
+  String _percent(double? value) =>
+      value == null ? 'VERİ YOK' : '${value.toStringAsFixed(2)}%';
 
   Widget _card({required Widget child}) {
     return Container(
