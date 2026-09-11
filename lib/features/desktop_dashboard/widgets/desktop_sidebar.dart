@@ -15,25 +15,19 @@ class DesktopSidebar extends StatelessWidget {
       routeIndex: 0,
       icon: Icons.dashboard_rounded,
       title: 'Ana Sayfa',
-      subtitle: 'Gunluk komuta merkezi',
-    ),
-    _SidebarItem(
-      routeIndex: 3,
-      icon: Icons.psychology_alt_rounded,
-      title: 'Karar Merkezi',
-      subtitle: 'CROC karar ve analiz merkezi',
-    ),
-    _SidebarItem(
-      routeIndex: 6,
-      icon: Icons.notifications_active_rounded,
-      title: 'KAP Radar',
-      subtitle: 'Sirket bildirim ve haber akisi',
+      subtitle: 'Günlük karar ve fırsat özeti',
     ),
     _SidebarItem(
       routeIndex: 5,
       icon: Icons.account_balance_wallet_rounded,
       title: 'Fon Merkezi',
       subtitle: 'TEFAS fon analiz merkezi',
+    ),
+    _SidebarItem(
+      routeIndex: 6,
+      icon: Icons.notifications_active_rounded,
+      title: 'KAP Radar',
+      subtitle: 'Hisse ve fon bildirimleri',
     ),
   ];
 
