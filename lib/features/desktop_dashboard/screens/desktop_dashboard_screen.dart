@@ -123,9 +123,8 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
     return Scaffold(
       key: _mobileScaffoldKey,
       backgroundColor: const Color(0xFF020605),
-
       drawer: Drawer(
-        width: 280,
+        width: 260,
         backgroundColor: const Color(0xFF04100C),
         child: SafeArea(
           child: Column(
@@ -163,18 +162,11 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
               ),
               const Divider(height: 1, color: Color(0xFF173E30)),
               const SizedBox(height: 10),
-
               _MobileDrawerItem(
                 icon: Icons.home_rounded,
                 title: 'Ana Sayfa',
                 selected: selectedIndex == 0,
                 onTap: () => _selectMobilePage(0),
-              ),
-              _MobileDrawerItem(
-                icon: Icons.auto_awesome_rounded,
-                title: 'Hisse Merkezi',
-                selected: selectedIndex == 2,
-                onTap: () => _selectMobilePage(2),
               ),
               _MobileDrawerItem(
                 icon: Icons.psychology_alt_rounded,
@@ -188,9 +180,13 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
                 selected: selectedIndex == 6,
                 onTap: () => _selectMobilePage(6),
               ),
-
+              _MobileDrawerItem(
+                icon: Icons.account_balance_wallet_rounded,
+                title: 'Fon Merkezi',
+                selected: selectedIndex == 5,
+                onTap: () => _selectMobilePage(5),
+              ),
               const Spacer(),
-
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
@@ -207,7 +203,6 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
           ),
         ),
       ),
-
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -263,7 +258,7 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
       case 4:
         return 'Portföy';
       case 5:
-        return 'Fonlar';
+        return 'Fon Merkezi';
       case 6:
         return 'KAP Radar';
       default:
