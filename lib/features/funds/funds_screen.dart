@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/funds/data_sources/tefas_fund_data_source.dart';
@@ -20,7 +22,11 @@ class _FundsScreenState extends State<FundsScreen> {
   FundHistoryResult? _history;
   FundMetricsResult? _metrics;
   bool _loading = false;
+  bool _searching = false;
   String? _error;
+  Timer? _searchDebounce;
+  int _searchGeneration = 0;
+  List<FundSearchItem> _suggestions = const <FundSearchItem>[];
 
   @override
   void initState() {
@@ -30,17 +36,66 @@ class _FundsScreenState extends State<FundsScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    final query = value.trim();
+    final generation = ++_searchGeneration;
+
+    if (query.isEmpty) {
+      setState(() {
+        _searching = false;
+        _suggestions = const <FundSearchItem>[];
+      });
+      return;
+    }
+
+    setState(() {
+      _searching = true;
+    });
+
+    _searchDebounce = Timer(const Duration(milliseconds: 280), () async {
+      final results = await _dataSource.searchFunds(query, limit: 10);
+      if (!mounted || generation != _searchGeneration) return;
+
+      setState(() {
+        _searching = false;
+        _suggestions = results;
+      });
+    });
+  }
+
+  Future<void> _selectSuggestion(FundSearchItem item) async {
+    _searchDebounce?.cancel();
+    _searchGeneration++;
+    _controller.text = item.fundCode;
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+
+    setState(() {
+      _searching = false;
+      _suggestions = const <FundSearchItem>[];
+    });
+
+    await _loadFund(item.fundCode);
   }
 
   Future<void> _loadFund([String? rawCode]) async {
     final code = (rawCode ?? _controller.text).trim().toUpperCase();
     if (code.isEmpty || _loading) return;
 
+    _searchDebounce?.cancel();
+    _searchGeneration++;
     FocusScope.of(context).unfocus();
     setState(() {
       _loading = true;
+      _searching = false;
+      _suggestions = const <FundSearchItem>[];
       _error = null;
     });
 
@@ -114,21 +169,35 @@ class _FundsScreenState extends State<FundsScreen> {
           controller: _controller,
           textCapitalization: TextCapitalization.characters,
           onSubmitted: _loadFund,
-          onChanged: (_) => setState(() {}),
+          onChanged: _onSearchChanged,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w800,
           ),
           decoration: InputDecoration(
-            hintText: 'Fon kodu: GBJ, MAC, AFT...',
+            hintText: 'Fon kodu veya adı: GBJ, Garanti, para piyasası...',
             hintStyle: const TextStyle(color: Color(0xFF668077)),
             prefixIcon: const Icon(Icons.search, color: Color(0xFF70F4AD)),
-            suffixIcon: _controller.text.isEmpty
+            suffixIcon: _searching
+                ? const Padding(
+                    padding: EdgeInsets.all(14),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : _controller.text.isEmpty
                 ? null
                 : IconButton(
                     onPressed: () {
+                      _searchDebounce?.cancel();
+                      _searchGeneration++;
                       _controller.clear();
-                      setState(() {});
+                      setState(() {
+                        _searching = false;
+                        _suggestions = const <FundSearchItem>[];
+                      });
                     },
                     icon: const Icon(Icons.close, color: Color(0xFF668077)),
                   ),
@@ -157,24 +226,124 @@ class _FundsScreenState extends State<FundsScreen> {
           ),
         );
 
-        if (compact) {
-          return Column(
-            children: [
-              field,
-              const SizedBox(height: 10),
-              SizedBox(width: double.infinity, child: button),
-            ],
-          );
-        }
+        final searchRow = compact
+            ? Column(
+                children: [
+                  field,
+                  const SizedBox(height: 10),
+                  SizedBox(width: double.infinity, child: button),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(child: field),
+                  const SizedBox(width: 10),
+                  button,
+                ],
+              );
 
-        return Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: field),
-            const SizedBox(width: 10),
-            button,
+            searchRow,
+            if (_suggestions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _suggestionPanel(),
+            ],
           ],
         );
       },
+    );
+  }
+
+  Widget _suggestionPanel() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF06130F),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF1E5C43)),
+      ),
+      child: Column(
+        children: _suggestions.map((item) {
+          return InkWell(
+            onTap: () => _selectSuggestion(item),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF123A2A),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      item.fundCode,
+                      style: const TextStyle(
+                        color: Color(0xFF70F4AD),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.fundName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            if (item.price != null)
+                              Text(
+                                '${item.price!.toStringAsFixed(6)} TL',
+                                style: const TextStyle(
+                                  color: Color(0xFF91A69D),
+                                  fontSize: 10,
+                                ),
+                              ),
+                            if (item.isFreeFund)
+                              const Text(
+                                'SERBEST FON',
+                                style: TextStyle(
+                                  color: Color(0xFFFFC66D),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF668077),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -215,7 +384,9 @@ class _FundsScreenState extends State<FundsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            latest == null ? 'Fiyat verisi yok' : '${latest.price.toStringAsFixed(6)} TL',
+            latest == null
+                ? 'Fiyat verisi yok'
+                : '${latest.price.toStringAsFixed(6)} TL',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 27,
@@ -289,8 +460,16 @@ class _FundsScreenState extends State<FundsScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _plainChip(oneMonth == null ? '1 aylık veri yok' : '1 ay ${_signedPercent(oneMonth)}'),
-              _plainChip(oneYear == null ? '1 yıllık veri yok' : '1 yıl ${_signedPercent(oneYear)}'),
+              _plainChip(
+                oneMonth == null
+                    ? '1 aylık veri yok'
+                    : '1 ay ${_signedPercent(oneMonth)}',
+              ),
+              _plainChip(
+                oneYear == null
+                    ? '1 yıllık veri yok'
+                    : '1 yıl ${_signedPercent(oneYear)}',
+              ),
               _plainChip('Risk: $risk'),
             ],
           ),
@@ -320,8 +499,8 @@ class _FundsScreenState extends State<FundsScreen> {
             final color = value == null
                 ? Colors.white
                 : value >= 0
-                    ? const Color(0xFF70F4AD)
-                    : const Color(0xFFFF6673);
+                ? const Color(0xFF70F4AD)
+                : const Color(0xFFFF6673);
             return SizedBox(
               width: itemWidth,
               child: _card(
@@ -369,7 +548,10 @@ class _FundsScreenState extends State<FundsScreen> {
           ),
           const SizedBox(height: 14),
           _metricRow('Risk seviyesi', metrics.riskLevel),
-          _metricRow('Yıllıklandırılmış volatilite', _percent(metrics.annualizedVolatility)),
+          _metricRow(
+            'Yıllıklandırılmış volatilite',
+            _percent(metrics.annualizedVolatility),
+          ),
           _metricRow('Maksimum düşüş', _percent(metrics.maxDrawdown)),
           _metricRow('Gözlem sayısı', metrics.observationCount.toString()),
         ],
@@ -398,7 +580,10 @@ class _FundsScreenState extends State<FundsScreen> {
           color: Colors.transparent,
           child: ExpansionTile(
             initiallyExpanded: false,
-            tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 4,
+            ),
             childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
             iconColor: const Color(0xFF70F4AD),
             collapsedIconColor: const Color(0xFF70F4AD),
@@ -470,10 +655,19 @@ class _FundsScreenState extends State<FundsScreen> {
           _metricRow('3 Ay getiri', _percentSigned(metrics.return3M)),
           _metricRow('6 Ay getiri', _percentSigned(metrics.return6M)),
           _metricRow('1 Yıl getiri', _percentSigned(metrics.return1Y)),
-          _metricRow('Yıllık volatilite', _percent(metrics.annualizedVolatility)),
+          _metricRow(
+            'Yıllık volatilite',
+            _percent(metrics.annualizedVolatility),
+          ),
           _metricRow('Maksimum düşüş', _percent(metrics.maxDrawdown)),
-          _metricRow('İlk veri tarihi', first == null ? 'VERİ YOK' : _date(first.date)),
-          _metricRow('Son veri tarihi', last == null ? 'VERİ YOK' : _date(last.date)),
+          _metricRow(
+            'İlk veri tarihi',
+            first == null ? 'VERİ YOK' : _date(first.date),
+          ),
+          _metricRow(
+            'Son veri tarihi',
+            last == null ? 'VERİ YOK' : _date(last.date),
+          ),
           _metricRow('Gözlem sayısı', '${metrics.observationCount}'),
           _metricRow('Kaynak', history.provider),
           _metricRow('Durum', metrics.status),
