@@ -207,7 +207,7 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Uyum puanı yalnızca mevcut gerçek verilerden hesaplanır. KAP verisi yoksa olumlu varsayım yapılmaz; portföy dağılımı ve makro katmanlar bağlandıkça güven artırılır.',
+                'Uyum skoru mevcut gerçek verilerden hesaplanır. Eksik KAP, portföy ve makro katmanları iyi varsayılmaz; veri geldikçe güven seviyesi yükselir.',
                 style: TextStyle(
                   color: Color(0xFFFFC66D),
                   fontSize: 11,
@@ -354,7 +354,7 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
                 ),
                 const Spacer(),
                 Text(
-                  '%${item.suitabilityScore} ${item.suitabilityLabel}',
+                  'UYUM ${item.suitabilityScore}/100 • ${item.suitabilityLabel}',
                   style: const TextStyle(
                     color: Color(0xFF70F4AD),
                     fontWeight: FontWeight.w900,
