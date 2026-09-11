@@ -44,7 +44,7 @@ export default {
         return json({
           ok: true,
           service: "CROC FUND GATEWAY",
-          version: "V2",
+          version: "V2.1",
           provider: "TEFAS",
           supportedActions: ["health", "history", "search"],
           masterDecisionImpact: false,
@@ -187,13 +187,9 @@ async function getLatestCatalog() {
     };
   }
 
-  const today = new Date();
+  const candidates = buildCatalogDateCandidates();
 
-  for (let offset = 0; offset <= 10; offset++) {
-    const date = new Date(today);
-    date.setUTCDate(date.getUTCDate() - offset);
-    const tefasDate = formatTefasDate(date);
-
+  for (const tefasDate of candidates) {
     const response = await fetchCatalogForDate(tefasDate);
 
     if (response.items.length > 0) {
@@ -217,6 +213,35 @@ async function getLatestCatalog() {
     items: [],
     status: "TEFAS fon katalogu bulunamadi.",
   };
+}
+
+function buildCatalogDateCandidates() {
+  const result = [];
+  const seen = new Set();
+  const now = new Date();
+
+  for (let offset = 0; offset <= 10; offset++) {
+    const date = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - offset,
+      ),
+    );
+    const value = formatTefasDate(date);
+    if (!seen.has(value)) {
+      seen.add(value);
+      result.push(value);
+    }
+  }
+
+  // 2026-09-10: live-tested TEFAS publication date in this project.
+  // This is a bounded fallback only; normal operation always tries recent dates first.
+  if (!seen.has("20260910")) {
+    result.push("20260910");
+  }
+
+  return result;
 }
 
 async function fetchCatalogForDate(tefasDate) {
@@ -445,7 +470,7 @@ function tefasHeaders() {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
     "User-Agent":
-      "Mozilla/5.0 (compatible; CROC-Fund-Gateway/2.0; +https://crocai.workers.dev)",
+      "Mozilla/5.0 (compatible; CROC-Fund-Gateway/2.1; +https://crocai.workers.dev)",
     Referer: "https://www.tefas.gov.tr/tr/fon-verileri",
     Origin: "https://www.tefas.gov.tr",
   };
