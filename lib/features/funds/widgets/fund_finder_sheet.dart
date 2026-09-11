@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/funds/data_sources/tefas_fund_data_source.dart';
+import '../../../core/funds/engines/fund_intelligence_engine.dart';
+import '../../../core/funds/engines/fund_metrics_engine.dart';
+import '../../../core/funds/engines/fund_suitability_engine.dart';
+import '../../../core/funds/models/fund_candidate_result.dart';
 
 class FundFinderSheet extends StatefulWidget {
   final TefasFundDataSource dataSource;
@@ -17,36 +21,37 @@ class FundFinderSheet extends StatefulWidget {
 }
 
 class _FundFinderSheetState extends State<FundFinderSheet> {
+  final FundMetricsEngine _metricsEngine = const FundMetricsEngine();
+  final FundIntelligenceEngine _intelligenceEngine = const FundIntelligenceEngine();
+  final FundSuitabilityEngine _suitabilityEngine = const FundSuitabilityEngine();
+
   String _horizon = '3-12 AY';
   String _risk = 'ORTA';
   String _goal = 'DENGELI BUYUME';
   bool _loading = false;
   String? _summary;
-  List<FundSearchItem> _results = const <FundSearchItem>[];
+  String? _error;
+  List<FundCandidateResult> _results = const <FundCandidateResult>[];
 
   String _queryForSelection() {
-    if (_goal == 'PARAYI KORU' || _horizon == '0-3 AY') {
-      return 'PARA PIYASASI';
-    }
-    if (_risk == 'DUSUK') {
-      return 'BORCLANMA ARACLARI';
-    }
-    if (_risk == 'YUKSEK' && _horizon == '1 YIL+') {
-      return 'HISSE SENEDI';
-    }
+    if (_goal == 'PARAYI KORU') return 'PARA PIYASASI';
+    if (_horizon == '0-3 AY' && _goal == 'BUYUME') return 'DEGISKEN';
+    if (_risk == 'DUSUK') return 'BORCLANMA ARACLARI';
+    if (_goal == 'BUYUME' && _horizon != '0-3 AY') return 'HISSE SENEDI';
+    if (_risk == 'YUKSEK' && _horizon == '1 YIL+') return 'HISSE SENEDI';
     return 'DEGISKEN';
   }
 
   String _categoryLabel(String query) {
     switch (query) {
       case 'PARA PIYASASI':
-        return 'Para piyasası fonları';
+        return 'Para piyasası';
       case 'BORCLANMA ARACLARI':
-        return 'Borçlanma araçları fonları';
+        return 'Borçlanma araçları';
       case 'HISSE SENEDI':
-        return 'Hisse senedi fonları';
+        return 'Hisse senedi';
       default:
-        return 'Değişken fonlar';
+        return 'Değişken';
     }
   }
 
@@ -55,19 +60,63 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
     setState(() {
       _loading = true;
       _summary = null;
-      _results = const <FundSearchItem>[];
+      _error = null;
+      _results = const <FundCandidateResult>[];
     });
 
-    final results = await widget.dataSource.searchFunds(query, limit: 8);
-    if (!mounted) return;
+    try {
+      final catalog = await widget.dataSource.searchFunds(query, limit: 8);
 
-    setState(() {
-      _loading = false;
-      _results = results;
-      _summary = results.isEmpty
-          ? 'Bu seçim için gerçek TEFAS kataloğunda aday bulunamadı.'
-          : '${_categoryLabel(query)} içinden ${results.length} gerçek TEFAS adayı bulundu.';
-    });
+      final ranked = await Future.wait(
+        catalog.map((fund) async {
+          final history = await widget.dataSource.fetchHistory(
+            fund.fundCode,
+            periodMonths: 12,
+          );
+          final metrics = _metricsEngine.calculate(history);
+          final intelligence = _intelligenceEngine.evaluate(metrics);
+          final score = _suitabilityEngine.score(
+            metrics: metrics,
+            intelligence: intelligence,
+            horizon: _horizon,
+            risk: _risk,
+            goal: _goal,
+          );
+
+          return FundCandidateResult(
+            fund: fund,
+            metrics: metrics,
+            intelligence: intelligence,
+            suitabilityScore: score,
+            suitabilityLabel: _suitabilityEngine.label(score),
+            reasons: _suitabilityEngine.reasons(
+              metrics: metrics,
+              horizon: _horizon,
+              risk: _risk,
+              goal: _goal,
+            ),
+          );
+        }),
+      );
+
+      final usable = ranked.where((item) => item.suitabilityScore > 0).toList()
+        ..sort((a, b) => b.suitabilityScore.compareTo(a.suitabilityScore));
+
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _results = usable;
+        _summary = usable.isEmpty
+            ? 'Gerçek TEFAS geçmişi yeterli aday bulunamadı.'
+            : '${_categoryLabel(query)} grubunda ${usable.length} fon gerçek performans ve risk verileriyle sıralandı.';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Fonlar analiz edilirken veri alınamadı: $error';
+      });
+    }
   }
 
   @override
@@ -101,7 +150,7 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Üç basit soruya cevap ver. CROC önce sana uygun fon türünü daraltsın, sonra gerçek TEFAS fonlarını göstersin.',
+                'Üç soruya cevap ver. CROC gerçek TEFAS fonlarını performans, risk ve seçtiğin profile göre sıralasın.',
                 style: TextStyle(color: Color(0xFF91A69D), height: 1.4),
               ),
               const SizedBox(height: 22),
@@ -136,20 +185,27 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
                   ),
                   icon: const Icon(Icons.auto_awesome_rounded),
                   label: Text(
-                    _loading ? 'Gerçek fonlar taranıyor...' : 'Bana uygun adayları bul',
+                    _loading ? 'Fonlar gerçek verilerle analiz ediliyor...' : 'Bana uygun adayları bul',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
               const Text(
-                'Bu ilk eleme, fon adındaki gerçek kategori bilgisine göre yapılır. Performans sıralaması veya yatırım tavsiyesi değildir. Seçtiğin fon açıldığında gerçek TEFAS geçmişi ve risk metrikleri ayrıca analiz edilir.',
+                'Uyum puanı yalnızca mevcut gerçek TEFAS verilerinden hesaplanır. KAP, portföy dağılımı ve makro katmanlar bağlanana kadar olumlu varsayım yapılmaz.',
                 style: TextStyle(
                   color: Color(0xFFFFC66D),
                   fontSize: 11,
                   height: 1.45,
                 ),
               ),
+              if (_error != null) ...[
+                const SizedBox(height: 18),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: Color(0xFFFF6673), fontWeight: FontWeight.w800),
+                ),
+              ],
               if (_summary != null) ...[
                 const SizedBox(height: 20),
                 Text(
@@ -162,7 +218,21 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
               ],
               if (_results.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                ..._results.map(_resultTile),
+                ..._results.take(3).toList().asMap().entries.map(
+                  (entry) => _resultTile(entry.value, rank: entry.key + 1),
+                ),
+                if (_results.length > 3) ...[
+                  const SizedBox(height: 8),
+                  ExpansionTile(
+                    collapsedIconColor: const Color(0xFF70F4AD),
+                    iconColor: const Color(0xFF70F4AD),
+                    title: Text(
+                      'Diğer ${_results.length - 3} adayı gör',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                    ),
+                    children: _results.skip(3).map((item) => _resultTile(item)).toList(),
+                  ),
+                ],
               ],
             ],
           ),
@@ -212,56 +282,80 @@ class _FundFinderSheetState extends State<FundFinderSheet> {
     );
   }
 
-  Widget _resultTile(FundSearchItem item) {
+  Widget _resultTile(FundCandidateResult item, {int? rank}) {
+    final metrics = item.metrics;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF07130F),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF1E5C43)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: rank == 1 ? const Color(0xFF70F4AD) : const Color(0xFF1E5C43),
+        ),
       ),
-      child: ListTile(
+      child: InkWell(
         onTap: () {
           Navigator.of(context).pop();
-          widget.onSelected(item);
+          widget.onSelected(item.fund);
         },
-        leading: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF123A2A),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            item.fundCode,
-            style: const TextStyle(
-              color: Color(0xFF70F4AD),
-              fontWeight: FontWeight.w900,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (rank != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      '#$rank',
+                      style: const TextStyle(color: Color(0xFF70F4AD), fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF123A2A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    item.fund.fundCode,
+                    style: const TextStyle(color: Color(0xFF70F4AD), fontWeight: FontWeight.w900),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '%${item.suitabilityScore} ${item.suitabilityLabel}',
+                  style: const TextStyle(color: Color(0xFF70F4AD), fontWeight: FontWeight.w900),
+                ),
+              ],
             ),
-          ),
-        ),
-        title: Text(
-          item.fundName,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 12,
-          ),
-        ),
-        subtitle: Text(
-          item.isFreeFund ? 'SERBEST FON' : 'TEFAS',
-          style: TextStyle(
-            color: item.isFreeFund
-                ? const Color(0xFFFFC66D)
-                : const Color(0xFF91A69D),
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          color: Color(0xFF668077),
+            const SizedBox(height: 9),
+            Text(
+              item.fund.fundName,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            ...item.reasons.map(
+              (reason) => Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text('• $reason', style: const TextStyle(color: Color(0xFFADC0B8), fontSize: 11)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '3A ${_percent(metrics.return3M)}  •  6A ${_percent(metrics.return6M)}  •  Risk ${metrics.riskLevel}',
+              style: const TextStyle(color: Color(0xFF91A69D), fontSize: 10),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  String _percent(double? value) {
+    if (value == null) return '—';
+    final sign = value > 0 ? '+' : '';
+    return '$sign${value.toStringAsFixed(1)}%';
   }
 }
