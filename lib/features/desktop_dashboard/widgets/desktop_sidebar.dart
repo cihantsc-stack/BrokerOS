@@ -18,12 +18,6 @@ class DesktopSidebar extends StatelessWidget {
       subtitle: 'Gunluk komuta merkezi',
     ),
     _SidebarItem(
-      routeIndex: 2,
-      icon: Icons.psychology_alt_rounded,
-      title: 'Hisse Merkezi',
-      subtitle: 'Yapay zeka asistani',
-    ),
-    _SidebarItem(
       routeIndex: 3,
       icon: Icons.psychology_alt_rounded,
       title: 'Karar Merkezi',
@@ -34,6 +28,12 @@ class DesktopSidebar extends StatelessWidget {
       icon: Icons.notifications_active_rounded,
       title: 'KAP Radar',
       subtitle: 'Sirket bildirim ve haber akisi',
+    ),
+    _SidebarItem(
+      routeIndex: 5,
+      icon: Icons.account_balance_wallet_rounded,
+      title: 'Fon Merkezi',
+      subtitle: 'TEFAS fon analiz merkezi',
     ),
   ];
 
