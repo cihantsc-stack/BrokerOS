@@ -8,7 +8,7 @@ import '../../portfolio/portfolio_screen.dart';
 import '../widgets/dashboard_content.dart';
 import '../widgets/desktop_sidebar.dart';
 import '../widgets/desktop_top_bar.dart';
-import 'kap_radar_screen.dart';
+import 'kap_radar_hub_screen.dart';
 
 class DesktopDashboardScreen extends StatefulWidget {
   const DesktopDashboardScreen({super.key});
@@ -30,38 +30,29 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
       case 0:
         page = const DashboardContent();
         break;
-
       case 1:
         page = const DataTerminalScreen();
         break;
-
       case 2:
         page = const AiScreen();
         break;
-
       case 3:
         page = const CrocDecisionLabScreen();
         break;
-
       case 4:
         page = const PortfolioScreen();
         break;
-
       case 5:
         page = const FundsScreen();
         break;
-
       case 6:
-        page = const KapRadarScreen();
+        page = const KapRadarHubScreen();
         break;
-
       default:
         page = const DashboardContent();
     }
 
-    if (index == 0) {
-      return page;
-    }
+    if (index == 0) return page;
 
     return mobile
         ? _MobilePageFrame(child: page)
@@ -73,12 +64,7 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final mobile = constraints.maxWidth < 850;
-
-        if (mobile) {
-          return _buildMobileShell();
-        }
-
-        return _buildDesktopShell();
+        return mobile ? _buildMobileShell() : _buildDesktopShell();
       },
     );
   }
@@ -91,9 +77,7 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
           DesktopSidebar(
             selectedIndex: selectedIndex,
             onSelected: (value) {
-              setState(() {
-                selectedIndex = value;
-              });
+              setState(() => selectedIndex = value);
             },
           ),
           Expanded(
@@ -169,22 +153,16 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
                 onTap: () => _selectMobilePage(0),
               ),
               _MobileDrawerItem(
-                icon: Icons.psychology_alt_rounded,
-                title: 'Karar Merkezi',
-                selected: selectedIndex == 3,
-                onTap: () => _selectMobilePage(3),
+                icon: Icons.account_balance_wallet_rounded,
+                title: 'Fon Merkezi',
+                selected: selectedIndex == 5,
+                onTap: () => _selectMobilePage(5),
               ),
               _MobileDrawerItem(
                 icon: Icons.notifications_active_rounded,
                 title: 'KAP Radar',
                 selected: selectedIndex == 6,
                 onTap: () => _selectMobilePage(6),
-              ),
-              _MobileDrawerItem(
-                icon: Icons.account_balance_wallet_rounded,
-                title: 'Fon Merkezi',
-                selected: selectedIndex == 5,
-                onTap: () => _selectMobilePage(5),
               ),
               const Spacer(),
               const Padding(
@@ -239,24 +217,13 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
 
   void _selectMobilePage(int index) {
     Navigator.pop(context);
-
-    setState(() {
-      selectedIndex = index;
-    });
+    setState(() => selectedIndex = index);
   }
 
   String _mobileTitle(int index) {
     switch (index) {
       case 0:
         return 'CROC AI';
-      case 1:
-        return 'Veri Terminali';
-      case 2:
-        return 'Hisse Merkezi';
-      case 3:
-        return 'Karar Merkezi';
-      case 4:
-        return 'Portföy';
       case 5:
         return 'Fon Merkezi';
       case 6:
