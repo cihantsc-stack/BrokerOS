@@ -44,9 +44,9 @@ export default {
         return json({
           ok: true,
           service: "CROC FUND GATEWAY",
-          version: "V2.1",
+          version: "V2.2",
           provider: "TEFAS",
-          supportedActions: ["health", "history", "search"],
+          supportedActions: ["health", "history", "search", "catalog-debug"],
           masterDecisionImpact: false,
           mockData: false,
           timestamp: new Date().toISOString(),
@@ -91,12 +91,20 @@ export default {
         return await searchFunds(query, limit);
       }
 
+      if (action === "catalog-debug") {
+        const requestedDate = String(url.searchParams.get("date") || "20260910")
+          .trim()
+          .replace(/[^0-9]/g, "")
+          .slice(0, 8);
+        return await debugCatalog(requestedDate || "20260910");
+      }
+
       return json(
         {
           ok: false,
           available: false,
           error: "Bilinmeyen action.",
-          supportedActions: ["health", "history", "search"],
+          supportedActions: ["health", "history", "search", "catalog-debug"],
         },
         400,
       );
@@ -113,6 +121,54 @@ export default {
     }
   },
 };
+
+async function debugCatalog(tefasDate) {
+  const body = buildCatalogBody(tefasDate);
+
+  try {
+    const response = await fetch(TEFAS_CATALOG_URL, {
+      method: "POST",
+      headers: tefasHeaders(),
+      body,
+    });
+
+    const raw = await response.text();
+    let decoded = null;
+    try {
+      decoded = JSON.parse(raw);
+    } catch (_) {}
+
+    return json({
+      ok: true,
+      provider: "TEFAS",
+      test: "catalog-debug",
+      requestedDate: tefasDate,
+      upstreamStatus: response.status,
+      upstreamOk: response.ok,
+      contentType: response.headers.get("content-type"),
+      rawLength: raw.length,
+      errorCode: decoded?.errorCode ?? null,
+      errorMessage: decoded?.errorMessage ?? null,
+      totalCount: decoded?.toplamSayi ?? null,
+      resultCount: Array.isArray(decoded?.resultList)
+        ? decoded.resultList.length
+        : null,
+      preview: raw.slice(0, 700),
+      mockData: false,
+      masterDecisionImpact: false,
+    });
+  } catch (error) {
+    return json({
+      ok: false,
+      provider: "TEFAS",
+      test: "catalog-debug",
+      requestedDate: tefasDate,
+      fetchError: String(error?.message || error),
+      mockData: false,
+      masterDecisionImpact: false,
+    });
+  }
+}
 
 async function searchFunds(query, limit) {
   const catalog = await getLatestCatalog();
@@ -187,9 +243,20 @@ async function getLatestCatalog() {
     };
   }
 
-  const candidates = buildCatalogDateCandidates();
+  const today = new Date();
+  const datesToTry = [];
 
-  for (const tefasDate of candidates) {
+  for (let offset = 0; offset <= 10; offset++) {
+    const date = new Date(today);
+    date.setUTCDate(date.getUTCDate() - offset);
+    datesToTry.push(formatTefasDate(date));
+  }
+
+  if (!datesToTry.includes("20260910")) {
+    datesToTry.push("20260910");
+  }
+
+  for (const tefasDate of datesToTry) {
     const response = await fetchCatalogForDate(tefasDate);
 
     if (response.items.length > 0) {
@@ -215,37 +282,8 @@ async function getLatestCatalog() {
   };
 }
 
-function buildCatalogDateCandidates() {
-  const result = [];
-  const seen = new Set();
-  const now = new Date();
-
-  for (let offset = 0; offset <= 10; offset++) {
-    const date = new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() - offset,
-      ),
-    );
-    const value = formatTefasDate(date);
-    if (!seen.has(value)) {
-      seen.add(value);
-      result.push(value);
-    }
-  }
-
-  // 2026-09-10: live-tested TEFAS publication date in this project.
-  // This is a bounded fallback only; normal operation always tries recent dates first.
-  if (!seen.has("20260910")) {
-    result.push("20260910");
-  }
-
-  return result;
-}
-
-async function fetchCatalogForDate(tefasDate) {
-  const body = JSON.stringify({
+function buildCatalogBody(tefasDate) {
+  return JSON.stringify({
     fonTipi: "YAT",
     fonKodu: "",
     aramaMetni: "",
@@ -263,6 +301,10 @@ async function fetchCatalogForDate(tefasDate) {
     fonGrup: "",
     fonUnvanTip: "",
   });
+}
+
+async function fetchCatalogForDate(tefasDate) {
+  const body = buildCatalogBody(tefasDate);
 
   let response;
 
@@ -470,7 +512,7 @@ function tefasHeaders() {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
     "User-Agent":
-      "Mozilla/5.0 (compatible; CROC-Fund-Gateway/2.1; +https://crocai.workers.dev)",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0.0.0 Safari/537.36",
     Referer: "https://www.tefas.gov.tr/tr/fon-verileri",
     Origin: "https://www.tefas.gov.tr",
   };
