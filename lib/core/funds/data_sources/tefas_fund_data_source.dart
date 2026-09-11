@@ -79,44 +79,58 @@ class TefasFundDataSource {
       'limit': safeLimit.toString(),
     });
 
-    try {
-      final response = await _client
-          .get(
-            uri,
-            headers: const <String, String>{'Accept': 'application/json'},
-          )
-          .timeout(const Duration(seconds: 15));
+    final response = await _client
+        .get(
+          uri,
+          headers: const <String, String>{'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) {
-        return const <FundSearchItem>[];
-      }
-
-      final dynamic decoded = jsonDecode(response.body);
-      if (decoded is! Map<String, dynamic> || decoded['available'] != true) {
-        return const <FundSearchItem>[];
-      }
-
-      final rawResults = decoded['results'];
-      if (rawResults is! List) {
-        return const <FundSearchItem>[];
-      }
-
-      final results = <FundSearchItem>[];
-      for (final dynamic item in rawResults) {
-        if (item is! Map) continue;
-        try {
-          results.add(
-            FundSearchItem.fromJson(Map<String, dynamic>.from(item)),
-          );
-        } catch (_) {
-          // Tek bozuk arama kaydi diger gercek TEFAS sonuclarini dusurmesin.
-        }
-      }
-
-      return List<FundSearchItem>.unmodifiable(results);
-    } catch (_) {
-      return const <FundSearchItem>[];
+    if (response.statusCode != 200) {
+      throw StateError(
+        'FUND_SEARCH_HTTP_${response.statusCode}: ${response.body}',
+      );
     }
+
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } catch (error) {
+      throw FormatException('FUND_SEARCH_JSON: $error');
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('FUND_SEARCH_RESPONSE_MAP_DEGIL');
+    }
+
+    if (decoded['available'] != true) {
+      throw StateError(
+        'FUND_SEARCH_UNAVAILABLE: ${decoded['status'] ?? decoded['error'] ?? 'bilinmeyen'}',
+      );
+    }
+
+    final rawResults = decoded['results'];
+    if (rawResults is! List) {
+      throw const FormatException('FUND_SEARCH_RESULTS_LIST_DEGIL');
+    }
+
+    final results = <FundSearchItem>[];
+    for (final dynamic item in rawResults) {
+      if (item is! Map) continue;
+      try {
+        results.add(FundSearchItem.fromJson(Map<String, dynamic>.from(item)));
+      } catch (_) {
+        // Tek bozuk arama kaydi diger gercek TEFAS sonuclarini dusurmesin.
+      }
+    }
+
+    if (results.isEmpty && rawResults.isNotEmpty) {
+      throw StateError(
+        'FUND_SEARCH_PARSE_0/${rawResults.length}: kayitlar geldi fakat hicbiri modele donusmedi.',
+      );
+    }
+
+    return List<FundSearchItem>.unmodifiable(results);
   }
 
   Future<FundHistoryResult> fetchHistory(
