@@ -93,7 +93,7 @@ class CrocHorizonEngine {
     final momentumScore = _momentumScore(technical);
     final trendScore = _trendScore(price, technical);
     final volumeScore = _volumeScore(technical.volumeRatio);
-    final kapScore = kap.hasData ? kap.score.clamp(0, 100).toDouble() : 50.0;
+    final kapScore = kap.hasData ? kap.score.clamp(0, 100).toDouble() : 0.0;
 
     late double score;
     final missing = <String>[];
@@ -101,18 +101,18 @@ class CrocHorizonEngine {
     switch (horizon) {
       case CrocHorizon.intraday:
         score =
-            momentumScore * .35 +
-            trendScore * .30 +
-            volumeScore * .20 +
+            momentumScore * .34 +
+            trendScore * .26 +
+            volumeScore * .25 +
             technicalScore * .15;
         break;
       case CrocHorizon.week:
         score =
             technicalScore * .30 +
-            momentumScore * .25 +
-            trendScore * .20 +
-            volumeScore * .10 +
-            masterScore * .15;
+            momentumScore * .24 +
+            trendScore * .21 +
+            volumeScore * .15 +
+            masterScore * .10;
         break;
       case CrocHorizon.month:
         score =
@@ -126,12 +126,12 @@ class CrocHorizonEngine {
         break;
       case CrocHorizon.threeMonths:
         score =
-            masterScore * .35 +
+            masterScore * .30 +
             technicalScore * .20 +
             trendScore * .10 +
             kapScore * .20 +
             momentumScore * .05 +
-            volumeScore * .10;
+            volumeScore * .05;
         if (!kap.hasData) missing.add('KAP');
         missing
           ..add('fon hareketi')
@@ -139,13 +139,12 @@ class CrocHorizonEngine {
         break;
       case CrocHorizon.sixMonths:
         score =
-            masterScore * .30 +
+            masterScore * .25 +
             technicalScore * .15 +
             trendScore * .10 +
             kapScore * .20 +
             momentumScore * .05 +
-            volumeScore * .05 +
-            50 * .15;
+            volumeScore * .05;
         if (!kap.hasData) missing.add('KAP');
         missing
           ..add('fon hareketi')
@@ -156,14 +155,28 @@ class CrocHorizonEngine {
 
     var confidence = master?.masterConfidence ?? 55;
     confidence = confidence.clamp(0, 100);
-    if (missing.isNotEmpty) confidence -= missing.length * 8;
-    if (horizon == CrocHorizon.threeMonths || horizon == CrocHorizon.sixMonths) {
-      confidence = confidence.clamp(0, 72);
+
+    if (technical.volumeRatio < .9) {
+      confidence -= horizon == CrocHorizon.intraday ? 14 : 6;
+    }
+    if (missing.isNotEmpty) confidence -= missing.length * 9;
+    if (horizon == CrocHorizon.month) confidence = confidence.clamp(0, 78);
+    if (horizon == CrocHorizon.threeMonths) {
+      confidence = confidence.clamp(0, 68);
+    }
+    if (horizon == CrocHorizon.sixMonths) {
+      confidence = confidence.clamp(0, 58);
     }
     confidence = confidence.clamp(20, 100);
 
     final roundedScore = score.round().clamp(0, 100);
-    final decision = _decision(roundedScore, confidence, horizon, missing);
+    final decision = _decision(
+      score: roundedScore,
+      confidence: confidence,
+      horizon: horizon,
+      missing: missing,
+      volumeRatio: technical.volumeRatio,
+    );
     final levels = _levels(price, technical, horizon);
 
     return CrocHorizonResult(
@@ -209,30 +222,44 @@ class CrocHorizonEngine {
   }
 
   double _volumeScore(double ratio) {
-    if (ratio <= 0) return 35;
-    if (ratio >= 1.5) return 90;
-    if (ratio >= 1.2) return 78;
-    if (ratio >= .9) return 62;
-    if (ratio >= .7) return 48;
-    return 35;
+    if (ratio <= 0) return 25;
+    if (ratio >= 1.5) return 92;
+    if (ratio >= 1.2) return 80;
+    if (ratio >= 1.0) return 68;
+    if (ratio >= .9) return 58;
+    if (ratio >= .7) return 42;
+    return 28;
   }
 
-  String _decision(
-    int score,
-    int confidence,
-    CrocHorizon horizon,
-    List<String> missing,
-  ) {
+  String _decision({
+    required int score,
+    required int confidence,
+    required CrocHorizon horizon,
+    required List<String> missing,
+    required double volumeRatio,
+  }) {
+    if (confidence < 38) return 'BEKLE';
+
+    if (horizon == CrocHorizon.intraday) {
+      if (volumeRatio < .75) {
+        return score >= 68 ? 'TEYİT BEKLE' : 'BEKLE';
+      }
+      if (volumeRatio < 1.0 && score >= 72) return 'KADEMELİ AL';
+    }
+
     if ((horizon == CrocHorizon.threeMonths ||
             horizon == CrocHorizon.sixMonths) &&
-        missing.length >= 2 &&
-        score >= 68) {
+        missing.length >= 2) {
+      return score >= 58 ? 'İZLE' : 'BEKLE';
+    }
+
+    if (horizon == CrocHorizon.month && missing.length >= 2 && score >= 68) {
       return 'İZLE';
     }
-    if (confidence < 40) return 'BEKLE';
-    if (score >= 72) return 'AL';
-    if (score >= 58) return 'İZLE';
-    if (score >= 44) return 'BEKLE';
+
+    if (score >= 74 && confidence >= 55) return 'AL';
+    if (score >= 60) return 'İZLE';
+    if (score >= 45) return 'BEKLE';
     return 'UZAK DUR';
   }
 
@@ -253,27 +280,72 @@ class CrocHorizonEngine {
       );
     }
 
-    final multiplier = switch (horizon) {
-      CrocHorizon.intraday => .45,
-      CrocHorizon.week => .75,
-      CrocHorizon.month => 1.15,
-      CrocHorizon.threeMonths => 1.8,
-      CrocHorizon.sixMonths => 2.5,
-    };
+    late double entryLow;
+    late double entryHigh;
+    late double stop;
+    late double target1;
+    late double target2;
+    late double target3;
 
-    final support = a.support > 0 ? a.support : price - atr * .6;
-    final entryLow = support > 0 ? support : null;
-    final entryHigh = price;
-    final stop = a.stop > 0 ? a.stop : price - atr * (1 + multiplier * .35);
+    switch (horizon) {
+      case CrocHorizon.intraday:
+        entryLow = price - atr * .45;
+        entryHigh = price + atr * .12;
+        stop = price - atr * .80;
+        target1 = price + atr * .55;
+        target2 = price + atr * 1.05;
+        target3 = price + atr * 1.55;
+        break;
+      case CrocHorizon.week:
+        entryLow = price - atr * .85;
+        entryHigh = price + atr * .18;
+        stop = price - atr * 1.25;
+        target1 = price + atr * 1.15;
+        target2 = price + atr * 1.85;
+        target3 = price + atr * 2.55;
+        break;
+      case CrocHorizon.month:
+        entryLow = price - atr * 1.25;
+        entryHigh = price + atr * .20;
+        stop = price - atr * 1.75;
+        target1 = price + atr * 1.65;
+        target2 = price + atr * 2.70;
+        target3 = price + atr * 3.80;
+        break;
+      case CrocHorizon.threeMonths:
+        entryLow = price - atr * 1.65;
+        entryHigh = price + atr * .25;
+        stop = price - atr * 2.20;
+        target1 = price + atr * 2.20;
+        target2 = price + atr * 3.70;
+        target3 = price + atr * 5.20;
+        break;
+      case CrocHorizon.sixMonths:
+        entryLow = price - atr * 2.10;
+        entryHigh = price + atr * .30;
+        stop = price - atr * 2.80;
+        target1 = price + atr * 2.80;
+        target2 = price + atr * 4.80;
+        target3 = price + atr * 6.80;
+        break;
+    }
 
-    final resistance = a.resistance > price ? a.resistance : price + atr;
-    final target1 = resistance;
-    final target2 = price + atr * (1.2 + multiplier);
-    final target3 = price + atr * (1.8 + multiplier * 1.35);
+    if (a.support > 0 && a.support < price) {
+      final maxSupportDistance = switch (horizon) {
+        CrocHorizon.intraday => atr * .70,
+        CrocHorizon.week => atr * 1.10,
+        CrocHorizon.month => atr * 1.55,
+        CrocHorizon.threeMonths => atr * 2.10,
+        CrocHorizon.sixMonths => atr * 2.60,
+      };
+      if ((price - a.support) <= maxSupportDistance) {
+        entryLow = a.support;
+      }
+    }
 
     return _CrocLevels(
-      entryLow: entryLow,
-      entryHigh: entryHigh,
+      entryLow: entryLow > 0 ? entryLow : null,
+      entryHigh: entryHigh > 0 ? entryHigh : null,
       stop: stop > 0 ? stop : null,
       target1: target1 > price ? target1 : null,
       target2: target2 > price ? target2 : null,
@@ -303,14 +375,18 @@ class CrocHorizonEngine {
           : 'MACD momentumu zayıf.',
     );
 
-    if (horizon != CrocHorizon.intraday && kap.hasData) {
-      reasons.add(kap.score >= 55 ? 'KAP etkisi destekliyor.' : 'KAP etkisi temkinli.');
-    } else {
+    if (horizon == CrocHorizon.intraday || horizon == CrocHorizon.week) {
       reasons.add(
         technical.volumeRatio >= 1
-            ? 'Hacim ortalama üzerinde.'
-            : 'Hacim teyidi zayıf.',
+            ? 'Hacim teyidi güçlü.'
+            : 'Hacim teyidi zayıf; fiyat kovalanmamalı.',
       );
+    } else if (kap.hasData) {
+      reasons.add(
+        kap.score >= 55 ? 'KAP etkisi destekliyor.' : 'KAP etkisi temkinli.',
+      );
+    } else {
+      reasons.add('KAP verisi yok; uzun vade güveni düşürüldü.');
     }
 
     return reasons.take(3).toList(growable: false);
