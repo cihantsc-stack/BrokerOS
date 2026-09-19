@@ -176,13 +176,6 @@ class CrocHorizonEngine {
     confidence = confidence.clamp(20, 100);
 
     final roundedScore = score.round().clamp(0, 100);
-    final decision = _decision(
-      score: roundedScore,
-      confidence: confidence,
-      horizon: horizon,
-      missing: missing,
-      volumeRatio: technical.volumeRatio,
-    );
     final levels = _levels(price, technical, horizon);
     final riskReward = _riskReward(
       price: price,
@@ -194,6 +187,16 @@ class CrocHorizonEngine {
       stop: levels.stop,
       target: levels.target1,
       price: price,
+    );
+
+    final decision = _decision(
+      score: roundedScore,
+      confidence: confidence,
+      horizon: horizon,
+      missing: missing,
+      volumeRatio: technical.volumeRatio,
+      riskReward: riskReward,
+      levelQuality: levelQuality,
     );
 
     return CrocHorizonResult(
@@ -256,8 +259,25 @@ class CrocHorizonEngine {
     required CrocHorizon horizon,
     required List<String> missing,
     required double volumeRatio,
+    required double? riskReward,
+    required String levelQuality,
   }) {
     if (confidence < 38) return 'BEKLE';
+
+    final weakLevels =
+        levelQuality == 'ZAYIF' ||
+        (riskReward != null && riskReward < 1.0);
+    final borderlineLevels =
+        levelQuality == 'SINIRDA' ||
+        (riskReward != null && riskReward < 1.3);
+
+    if (weakLevels && score >= 60) {
+      return 'BEKLE';
+    }
+
+    if (borderlineLevels && score >= 74) {
+      return 'İZLE';
+    }
 
     if (horizon == CrocHorizon.intraday) {
       if (volumeRatio < .75) {
