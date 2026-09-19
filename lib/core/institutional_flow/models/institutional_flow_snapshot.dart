@@ -40,4 +40,9 @@ class InstitutionalFlowSnapshot {
 
   int get coveragePercent =>
       ((activeLayers.length / 5) * 100).round().clamp(0, 100);
+
+  bool get hasRealData => activeLayers.isNotEmpty;
+
+  int get coveragePercent =>
+      ((activeLayers.length / 5) * 100).round().clamp(0, 100);
 }
