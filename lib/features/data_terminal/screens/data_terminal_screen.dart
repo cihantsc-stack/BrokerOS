@@ -936,7 +936,6 @@ class _FilterButton extends StatelessWidget {
   }
 }
 
-
 class _IndexBadge extends StatelessWidget {
   final String label;
 
