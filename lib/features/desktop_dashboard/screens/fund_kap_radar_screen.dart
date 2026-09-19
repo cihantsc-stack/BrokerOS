@@ -54,8 +54,9 @@ class _FundKapRadarScreenState extends State<FundKapRadarScreen> {
       final status = await _getJson(Uri.parse('$_base?mode=kap&action=status'));
       final lastIndex =
           int.tryParse(status['lastDisclosureIndex']?.toString() ?? '') ?? 0;
-      if (lastIndex <= 0)
+      if (lastIndex <= 0) {
         throw Exception('Son KAP bildirim numarası alınamadı.');
+      }
 
       final from = max(1, lastIndex - 2999);
       final feedResult = await _getJson(
