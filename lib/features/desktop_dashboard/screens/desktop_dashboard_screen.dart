@@ -153,30 +153,6 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
                 onTap: () => _selectMobilePage(0),
               ),
               _MobileDrawerItem(
-                icon: Icons.table_chart_rounded,
-                title: 'Veri Terminali',
-                selected: selectedIndex == 1,
-                onTap: () => _selectMobilePage(1),
-              ),
-              _MobileDrawerItem(
-                icon: Icons.psychology_alt_rounded,
-                title: 'AI',
-                selected: selectedIndex == 2,
-                onTap: () => _selectMobilePage(2),
-              ),
-              _MobileDrawerItem(
-                icon: Icons.route_rounded,
-                title: 'Karar Merkezi',
-                selected: selectedIndex == 3,
-                onTap: () => _selectMobilePage(3),
-              ),
-              _MobileDrawerItem(
-                icon: Icons.pie_chart_rounded,
-                title: 'Portföy',
-                selected: selectedIndex == 4,
-                onTap: () => _selectMobilePage(4),
-              ),
-              _MobileDrawerItem(
                 icon: Icons.account_balance_wallet_rounded,
                 title: 'Fon Merkezi',
                 selected: selectedIndex == 5,
@@ -248,14 +224,6 @@ class _DesktopDashboardScreenState extends State<DesktopDashboardScreen> {
     switch (index) {
       case 0:
         return 'CROC AI';
-      case 1:
-        return 'Veri Terminali';
-      case 2:
-        return 'AI';
-      case 3:
-        return 'Karar Merkezi';
-      case 4:
-        return 'Portföy';
       case 5:
         return 'Fon Merkezi';
       case 6:
