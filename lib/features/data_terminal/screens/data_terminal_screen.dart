@@ -25,9 +25,9 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
   static const Map<String, String> _nameOverrides = {
     'PAHOL': 'Pasifik Holding',
     'TAVHL': 'TAV Havalimanları',
-    'SISE': 'TÃ¼rkiye ÅiÅŸe ve Cam FabrikalarÄ±',
-    'SKBNK': 'Åekerbank',
-    'SOKM': 'Åok Marketler',
+    'SISE': 'Türkiye Şişe ve Cam Fabrikaları',
+    'SKBNK': 'Şekerbank',
+    'SOKM': 'Şok Marketler',
   };
 
   final DataTerminalService _service = DataTerminalService();
@@ -131,7 +131,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
 
     final code = value.trim().toUpperCase().replaceAll('.IS', '');
 
-    // Åirket adÄ± ararken Gateway'e kod diye istek atmayalÄ±m.
+    // Şirket adı ararken Gateway'e kod diye istek atmayalım.
     if (!RegExp(r'^[A-Z0-9]{3,8}$').hasMatch(code)) {
       if (_remoteSearchQuote != null || _remoteSearchLoading) {
         setState(() {
