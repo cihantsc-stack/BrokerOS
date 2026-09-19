@@ -123,6 +123,8 @@ class _CrocQuickViewCardState extends State<CrocQuickViewCard> {
           const SizedBox(height: 12),
           _DecisionStrip(result: current),
           const SizedBox(height: 10),
+          _RiskRewardStrip(result: current),
+          const SizedBox(height: 10),
           _LevelGrid(result: current),
           const SizedBox(height: 10),
           ...current.reasons.map(
@@ -223,6 +225,64 @@ class _DecisionStrip extends StatelessWidget {
           _MiniStat(label: 'SKOR', value: '${result.score}/100'),
           const SizedBox(width: 8),
           _MiniStat(label: 'GÜVEN', value: '%${result.confidence}'),
+        ],
+      ),
+    );
+  }
+}
+
+class _RiskRewardStrip extends StatelessWidget {
+  final CrocHorizonResult result;
+
+  const _RiskRewardStrip({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final rr = result.riskReward;
+    final tone = switch (result.levelQuality) {
+      'GÜÇLÜ' => const Color(0xFF70F4AD),
+      'UYGUN' => const Color(0xFF8FD8FF),
+      'SINIRDA' => const Color(0xFFFFC857),
+      'ZAYIF' => const Color(0xFFFF6673),
+      _ => const Color(0xFF91A69D),
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: tone.withValues(alpha: .20)),
+      ),
+      child: Row(
+        children: [
+          const Text(
+            'RİSK / GETİRİ',
+            style: TextStyle(
+              color: Color(0xFF789086),
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            rr == null ? '—' : '1 : ${rr.toStringAsFixed(2)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            result.levelQuality,
+            style: TextStyle(
+              color: tone,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );
