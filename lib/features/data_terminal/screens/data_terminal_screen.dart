@@ -10,7 +10,7 @@ import '../../../core/bist/database/bist100_master_database.dart';
 import '../models/data_terminal_quote.dart';
 import '../services/data_terminal_service.dart';
 
-enum _UniverseFilter { bist100, bist30, gainers, losers }
+enum _UniverseFilter { bist100, bist50, bist30, gainers, losers }
 
 enum _TerminalSort { codeAsc, codeDesc, changeDesc, volumeDesc, priceDesc }
 
@@ -202,6 +202,8 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
       switch (_filter) {
         case _UniverseFilter.bist100:
           return true;
+        case _UniverseFilter.bist50:
+          return BistIndexMembership.isBist50(quote.code);
         case _UniverseFilter.bist30:
           return BistIndexMembership.isBist30(quote.code);
         case _UniverseFilter.gainers:
@@ -259,6 +261,8 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
     switch (_filter) {
       case _UniverseFilter.bist100:
         return 'BIST 100';
+      case _UniverseFilter.bist50:
+        return 'BIST 50';
       case _UniverseFilter.bist30:
         return 'BIST 30';
       case _UniverseFilter.gainers:
@@ -315,7 +319,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
                                   return _QuoteRow(
                                     quote: quote,
                                     volumeText: _compact(quote.volume),
-                                    bist30: BistIndexMembership.isBist30(
+                                    indexLabel: BistIndexMembership.label(
                                       quote.code,
                                     ),
                                     onTap: () => _openDetail(quote),
@@ -465,6 +469,11 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
             title: 'BIST 100',
             selected: _filter == _UniverseFilter.bist100,
             onTap: () => setState(() => _filter = _UniverseFilter.bist100),
+          ),
+          _FilterButton(
+            title: 'BIST 50',
+            selected: _filter == _UniverseFilter.bist50,
+            onTap: () => setState(() => _filter = _UniverseFilter.bist50),
           ),
           _FilterButton(
             title: 'BIST 30',
@@ -671,13 +680,13 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
 class _QuoteRow extends StatelessWidget {
   final DataTerminalQuote quote;
   final String volumeText;
-  final bool bist30;
+  final String indexLabel;
   final VoidCallback onTap;
 
   const _QuoteRow({
     required this.quote,
     required this.volumeText,
-    required this.bist30,
+    required this.indexLabel,
     required this.onTap,
   });
 
@@ -711,29 +720,8 @@ class _QuoteRow extends StatelessWidget {
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
-                            if (bist30) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFFFFC857,
-                                  ).withValues(alpha: .10),
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: const Text(
-                                  '30',
-                                  style: TextStyle(
-                                    color: Color(0xFFFFC857),
-                                    fontSize: 7,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            const SizedBox(width: 6),
+                            _IndexBadge(label: indexLabel),
                           ],
                         ),
                         const SizedBox(height: 3),
@@ -795,17 +783,8 @@ class _QuoteRow extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      if (bist30) ...[
-                        const SizedBox(width: 6),
-                        const Text(
-                          '30',
-                          style: TextStyle(
-                            color: Color(0xFFFFC857),
-                            fontSize: 8,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
+                      const SizedBox(width: 6),
+                      _IndexBadge(label: indexLabel),
                     ],
                   ),
                 ),
@@ -951,6 +930,48 @@ class _FilterButton extends StatelessWidget {
             fontSize: 9,
             fontWeight: FontWeight.w900,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _IndexBadge extends StatelessWidget {
+  final String label;
+
+  const _IndexBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color;
+
+    switch (label) {
+      case 'B30':
+        color = const Color(0xFFFFC857);
+        break;
+      case 'B50':
+        color = const Color(0xFF55C7F3);
+        break;
+      case 'B100':
+        color = const Color(0xFF70F4AD);
+        break;
+      default:
+        color = const Color(0xFF71877D);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 7,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );
