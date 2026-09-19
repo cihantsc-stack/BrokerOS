@@ -39,6 +39,22 @@ class InstitutionalFlowEngine {
 
     final double concentrationRatio = _concentrationEngine.calculate(brokers);
 
+    final activeLayers = <String>[
+      if (brokers.isNotEmpty) 'Kurum dağılımı',
+      if (foreignRatio > 0) 'Yabancı oranı',
+      if (fundFlow != 0) 'Fon akışı',
+      if (lotLockRatio > 0) 'Lot kilidi',
+      if (concentrationRatio > 0) 'Kurum yoğunluğu',
+    ];
+
+    final missingLayers = <String>[
+      if (brokers.isEmpty) 'Kurum dağılımı',
+      if (foreignRatio <= 0) 'Yabancı oranı',
+      if (fundFlow == 0) 'Fon akışı',
+      if (lotLockRatio <= 0) 'Lot kilidi',
+      if (concentrationRatio <= 0) 'Kurum yoğunluğu',
+    ];
+
     final InstitutionalScoreResult scoreResult = _scoreEngine.calculate(
       brokers: brokers,
       foreignRatio: foreignRatio,
@@ -68,6 +84,8 @@ class InstitutionalFlowEngine {
       lotLockRatio: lotLockRatio,
       concentrationRatio: concentrationRatio,
       topBrokers: brokers,
+      activeLayers: List<String>.unmodifiable(activeLayers),
+      missingLayers: List<String>.unmodifiable(missingLayers),
       generatedAt: DateTime.now(),
     );
   }
