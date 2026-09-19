@@ -76,7 +76,9 @@ class _InstitutionalFlowCenterCardState
 
               final InstitutionalFlowSnapshot data = snapshot.data!;
 
-              final Color tone = data.positive
+              final Color tone = !data.hasRealData
+                  ? BrokerColors.textSoft
+                  : data.positive
                   ? BrokerColors.primary
                   : BrokerColors.red;
 
@@ -139,7 +141,9 @@ class _InstitutionalFlowCenterCardState
                               ),
                               const SizedBox(height: 5),
                               Text(
-                                data.direction.label,
+                                data.hasRealData
+                                    ? data.direction.label
+                                    : 'VERİ BEKLENİYOR',
                                 style: TextStyle(
                                   color: tone,
                                   fontSize: 23,
@@ -150,7 +154,9 @@ class _InstitutionalFlowCenterCardState
                           ),
                         ),
                         Text(
-                          '${data.score.toStringAsFixed(0)}/100',
+                          data.hasRealData
+                              ? '${data.score.toStringAsFixed(0)}/100'
+                              : '—',
                           style: const TextStyle(
                             color: BrokerColors.textMain,
                             fontSize: 23,
@@ -160,6 +166,27 @@ class _InstitutionalFlowCenterCardState
                       ],
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Veri kapsamı %${data.coveragePercent} • '
+                    '${data.activeLayers.length}/5 katman aktif',
+                    style: const TextStyle(
+                      color: BrokerColors.textSoft,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (data.missingLayers.isNotEmpty) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      'Beklenen katmanlar: ${data.missingLayers.join(' • ')}',
+                      style: const TextStyle(
+                        color: Color(0xFFFFC66D),
+                        fontSize: 10,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 13),
                   Wrap(
                     spacing: 10,
