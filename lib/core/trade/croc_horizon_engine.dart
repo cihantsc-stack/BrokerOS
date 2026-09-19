@@ -16,6 +16,8 @@ class CrocHorizonResult {
   final double? target1;
   final double? target2;
   final double? target3;
+  final double? riskReward;
+  final String levelQuality;
   final List<String> reasons;
   final List<String> missingLayers;
 
@@ -31,6 +33,8 @@ class CrocHorizonResult {
     required this.target1,
     required this.target2,
     required this.target3,
+    required this.riskReward,
+    required this.levelQuality,
     required this.reasons,
     required this.missingLayers,
   });
@@ -81,6 +85,8 @@ class CrocHorizonEngine {
         target1: null,
         target2: null,
         target3: null,
+        riskReward: null,
+        levelQuality: 'VERİ BEKLENİYOR',
         reasons: const ['Gerçek teknik veri tamamlanmadan yorum üretilmez.'],
         missingLayers: const ['teknik veri'],
       );
@@ -178,6 +184,17 @@ class CrocHorizonEngine {
       volumeRatio: technical.volumeRatio,
     );
     final levels = _levels(price, technical, horizon);
+    final riskReward = _riskReward(
+      price: price,
+      stop: levels.stop,
+      target: levels.target1,
+    );
+    final levelQuality = _levelQuality(
+      riskReward: riskReward,
+      stop: levels.stop,
+      target: levels.target1,
+      price: price,
+    );
 
     return CrocHorizonResult(
       horizon: horizon,
@@ -191,6 +208,8 @@ class CrocHorizonEngine {
       target1: levels.target1,
       target2: levels.target2,
       target3: levels.target3,
+      riskReward: riskReward,
+      levelQuality: levelQuality,
       reasons: _reasons(
         price: price,
         technical: technical,
@@ -311,6 +330,36 @@ class CrocHorizonEngine {
       target2: target2,
       target3: target3,
     );
+  }
+
+
+  double? _riskReward({
+    required double price,
+    required double? stop,
+    required double? target,
+  }) {
+    if (price <= 0 || stop == null || target == null) return null;
+
+    final risk = price - stop;
+    final reward = target - price;
+
+    if (risk <= 0 || reward <= 0) return null;
+    return reward / risk;
+  }
+
+  String _levelQuality({
+    required double? riskReward,
+    required double? stop,
+    required double? target,
+    required double price,
+  }) {
+    if (price <= 0 || stop == null || target == null || riskReward == null) {
+      return 'EKSİK SEVİYE';
+    }
+    if (riskReward >= 2.0) return 'GÜÇLÜ';
+    if (riskReward >= 1.3) return 'UYGUN';
+    if (riskReward >= 1.0) return 'SINIRDA';
+    return 'ZAYIF';
   }
 
   List<String> _reasons({
