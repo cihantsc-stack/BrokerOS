@@ -70,7 +70,10 @@ class CrocTechnicalAnalysis {
 class CrocTechnicalAnalysisEngine {
   const CrocTechnicalAnalysisEngine();
 
-  CrocTechnicalAnalysis analyze(List<HistoricalCandle> candles) {
+  CrocTechnicalAnalysis analyze(
+    List<HistoricalCandle> candles, {
+    double? currentPrice,
+  }) {
     if (candles.length < 20) {
       throw StateError('Teknik analiz için en az 20 mum gerekli.');
     }
@@ -78,7 +81,9 @@ class CrocTechnicalAnalysisEngine {
     final closes = candles.map((e) => e.close).toList(growable: false);
 
     final last = candles.last;
-    final price = last.close;
+    final price = currentPrice != null && currentPrice > 0
+        ? currentPrice
+        : last.close;
 
     final rsi = _rsi(closes, 14);
 
@@ -295,42 +300,63 @@ class CrocTechnicalAnalysisEngine {
     // Hedeflerin aşırı uzaklaşmasını sınırlandırıyoruz.
     // ============================================================
 
+    // ============================================================
+    // CROC AI TARGET ENGINE V2
+    // ============================================================
+    //
+    // H1: Ilk gercek teknik direncten kopmaz.
+    // H2: Ikinci direncten kopmaz.
+    // H3: Ucuncu direncten kopmaz.
+    //
+    // ATR ve R/R seviyeleri hedefi destekler fakat gercek
+    // teknik direnci zorla asmaz.
+    //
+    // Hedefler birbirinin ustunde kalir ve eski guvenlik
+    // tavanlari korunur.
+    // ============================================================
+
     final targetCap1 = price * 1.12;
     final targetCap2 = price * 1.20;
     final targetCap3 = price * 1.30;
 
     final atrTarget1 = price + atr * 1.40;
-
     final atrTarget2 = price + atr * 2.20;
-
     final atrTarget3 = price + atr * 3.20;
 
     final rrTarget1 = price + riskPerShare * 1.20;
-
     final rrTarget2 = price + riskPerShare * 1.80;
-
     final rrTarget3 = price + riskPerShare * 2.50;
 
-    final rawTarget1 = math
-        .max(atrTarget1, math.min(resistance, rrTarget1))
+    // Ilk hedefte teknik R1 ana tavandir.
+    // ATR / R:R beklentisinden daha yakin bir R1 varsa
+    // piyasanin gercek engelini kabul ederiz.
+    final target1Candidate = math.min(
+      resistance,
+      math.max(atrTarget1, rrTarget1),
+    );
+
+    final target = math
+        .min(math.max(target1Candidate, price + minimumLevelGap), targetCap1)
         .toDouble();
 
-    final rawTarget2 = math
-        .max(rawTarget1, math.max(atrTarget2, math.min(resistance2, rrTarget2)))
-        .toDouble();
-
-    final rawTarget3 = math
-        .max(rawTarget2, math.max(atrTarget3, math.min(resistance3, rrTarget3)))
-        .toDouble();
-
-    final target = math.min(rawTarget1, targetCap1).toDouble();
+    // H2 teknik R2 ile sinirlidir.
+    final target2Candidate = math.min(
+      resistance2,
+      math.max(atrTarget2, rrTarget2),
+    );
 
     final target2 = math
-        .min(math.max(rawTarget2, target), targetCap2)
+        .min(math.max(target2Candidate, target + minimumLevelGap), targetCap2)
         .toDouble();
 
+    // H3 teknik R3 ile sinirlidir.
+    final target3Candidate = math.min(
+      resistance3,
+      math.max(atrTarget3, rrTarget3),
+    );
+
     final target3 = math
-        .min(math.max(rawTarget3, target2), targetCap3)
+        .min(math.max(target3Candidate, target2 + minimumLevelGap), targetCap3)
         .toDouble();
 
     final riskReward = riskPerShare <= 0

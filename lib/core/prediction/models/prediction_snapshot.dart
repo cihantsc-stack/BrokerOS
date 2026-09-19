@@ -25,8 +25,13 @@ class PredictionSnapshot {
     required this.activeSignalCount,
   });
 
-  factory PredictionSnapshot.fromStock(StockAnalysis stock, {DateTime? createdAt}) {
-    final price=(stock.lastPrice ?? stock.entry) > 0 ? (stock.lastPrice ?? stock.entry) : 0.0;
+  factory PredictionSnapshot.fromStock(
+    StockAnalysis stock, {
+    DateTime? createdAt,
+  }) {
+    final price = (stock.lastPrice ?? stock.entry) > 0
+        ? (stock.lastPrice ?? stock.entry)
+        : 0.0;
     return PredictionSnapshot(
       symbol: stock.symbol.toUpperCase(),
       createdAt: createdAt ?? DateTime.now(),

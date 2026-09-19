@@ -10,8 +10,9 @@ class AiScreen extends StatefulWidget {
 }
 
 class _AiScreenState extends State<AiScreen> {
-  final TextEditingController _controller =
-      TextEditingController(text: 'ASELS');
+  final TextEditingController _controller = TextEditingController(
+    text: 'ASELS',
+  );
 
   String? _error;
 
@@ -26,8 +27,7 @@ class _AiScreenState extends State<AiScreen> {
 
     if (!RegExp(r'^[A-Z0-9]{3,6}$').hasMatch(symbol)) {
       setState(() {
-        _error =
-            'Geçerli bir BIST hisse kodu yaz. Örn: ASELS, KOCMT, THYAO';
+        _error = 'Geçerli bir BIST hisse kodu yaz. Örn: ASELS, KOCMT, THYAO';
       });
       return;
     }
@@ -71,16 +71,10 @@ class _AiScreenState extends State<AiScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF071812),
-            Color(0xFF04100C),
-            Color(0xFF020807),
-          ],
+          colors: [Color(0xFF071812), Color(0xFF04100C), Color(0xFF020807)],
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFF1D6549),
-        ),
+        border: Border.all(color: const Color(0xFF1D6549)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x2200FF9D),
@@ -97,9 +91,7 @@ class _AiScreenState extends State<AiScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF0B2118),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: const Color(0xFF2A8E63),
-              ),
+              border: Border.all(color: const Color(0xFF2A8E63)),
             ),
             child: const Icon(
               Icons.candlestick_chart_rounded,
@@ -143,16 +135,11 @@ class _AiScreenState extends State<AiScreen> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 11,
-              vertical: 7,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
             decoration: BoxDecoration(
               color: const Color(0xFF092118),
               borderRadius: BorderRadius.circular(99),
-              border: Border.all(
-                color: const Color(0xFF2A8E63),
-              ),
+              border: Border.all(color: const Color(0xFF2A8E63)),
             ),
             child: const Text(
               'CANLI VERİ',
@@ -174,9 +161,7 @@ class _AiScreenState extends State<AiScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF050F0C),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFF183C2F),
-        ),
+        border: Border.all(color: const Color(0xFF183C2F)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,8 +181,7 @@ class _AiScreenState extends State<AiScreen> {
               Expanded(
                 child: TextField(
                   controller: _controller,
-                  textCapitalization:
-                      TextCapitalization.characters,
+                  textCapitalization: TextCapitalization.characters,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _openStock(),
                   style: const TextStyle(
@@ -207,8 +191,7 @@ class _AiScreenState extends State<AiScreen> {
                     letterSpacing: 1.2,
                   ),
                   decoration: InputDecoration(
-                    hintText:
-                        'ASELS, KOCMT, THYAO, TUPRS...',
+                    hintText: 'ASELS, KOCMT, THYAO, TUPRS...',
                     hintStyle: const TextStyle(
                       color: Color(0xFF63766F),
                       fontSize: 13,
@@ -222,22 +205,15 @@ class _AiScreenState extends State<AiScreen> {
                     filled: true,
                     fillColor: const Color(0xFF071713),
                     border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF1D513D),
-                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF1D513D)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF1D513D),
-                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF1D513D)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
                       borderSide: const BorderSide(
                         color: Color(0xFF6CF0AD),
                         width: 1.4,
@@ -252,25 +228,17 @@ class _AiScreenState extends State<AiScreen> {
                 child: FilledButton.icon(
                   onPressed: _openStock,
                   style: FilledButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xFF23A86E),
+                    backgroundColor: const Color(0xFF23A86E),
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  icon: const Icon(
-                    Icons.auto_awesome_rounded,
-                  ),
+                  icon: const Icon(Icons.auto_awesome_rounded),
                   label: const Text(
                     'CROC NE DİYOR?',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
               ),
@@ -280,10 +248,7 @@ class _AiScreenState extends State<AiScreen> {
             const SizedBox(height: 8),
             Text(
               _error!,
-              style: const TextStyle(
-                color: Color(0xFFFF747A),
-                fontSize: 11,
-              ),
+              style: const TextStyle(color: Color(0xFFFF747A), fontSize: 11),
             ),
           ],
         ],
@@ -332,21 +297,14 @@ class _AiScreenState extends State<AiScreen> {
     );
   }
 
-  Widget _miniCard(
-    double width,
-    IconData icon,
-    String title,
-    String subtitle,
-  ) {
+  Widget _miniCard(double width, IconData icon, String title, String subtitle) {
     return Container(
       width: width,
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: const Color(0xFF050F0C),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: const Color(0xFF17372C),
-        ),
+        border: Border.all(color: const Color(0xFF17372C)),
       ),
       child: Row(
         children: [
@@ -357,17 +315,12 @@ class _AiScreenState extends State<AiScreen> {
               color: const Color(0xFF0A2118),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF6CF0AD),
-              size: 20,
-            ),
+            child: Icon(icon, color: const Color(0xFF6CF0AD), size: 20),
           ),
           const SizedBox(width: 11),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,

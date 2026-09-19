@@ -1,11 +1,17 @@
-CROC Prediction UI V1
+CROC FUND FLOW SUMMARY V2 - HAZIR DOSYALAR
 
-1) ZIP'i BrokerOS_Desktop proje klasörüne açın.
-2) PowerShell proje kökünde iken:
-   powershell -ExecutionPolicy Bypass -File .\install_prediction_ui.ps1
-3) Ardından:
-   dart analyze .\lib\features\intelligence\widgets\croc_prediction_shadow_card.dart
-4) Sonra:
-   flutter run -d chrome
+ZIP içindeki klasör yapısını BrokerOS_Desktop kök klasörüne kopyalayın.
 
-Installer broker_intelligence_screen.dart dosyasının otomatik yedeğini alır.
+Dosyalar:
+1) lib/core/funds/models/fund_flow_summary_result.dart
+2) lib/core/funds/data_sources/fund_flow_summary_data_source.dart
+3) lib/features/funds/funds_screen.dart
+
+Mevcut tefas_fund_data_source.dart dosyasına DOKUNULMADI.
+
+Sonra:
+dart format .\lib\core\funds\models\fund_flow_summary_result.dart .\lib\core\funds\data_sources\fund_flow_summary_data_source.dart .\lib\features\funds\funds_screen.dart
+dart analyze .\lib\core\funds\models\fund_flow_summary_result.dart
+dart analyze .\lib\core\funds\data_sources\fund_flow_summary_data_source.dart
+dart analyze .\lib\features\funds\funds_screen.dart
+flutter run -d chrome

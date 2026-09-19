@@ -15,6 +15,18 @@ class DailyTradeCandidate {
   final String tradeReason;
   final String contextLabel;
 
+  // CROC Para Radari V2 - 5 dakika canli teyit
+  final int moneyScore;
+  final int memoryScore;
+  final int overboughtScore;
+  final double moneyVolumeRatio;
+  final double moneyVolume15Ratio;
+  final double moneyTlVolume;
+  final double moneyCmf;
+  final double moneyVwap;
+  final double moneyRsi;
+  final bool moneyRadarAvailable;
+
   const DailyTradeCandidate({
     required this.symbol,
     required this.company,
@@ -28,6 +40,16 @@ class DailyTradeCandidate {
     required this.crocScore,
     required this.tradeReason,
     required this.contextLabel,
+    this.moneyScore = 0,
+    this.memoryScore = 0,
+    this.overboughtScore = 0,
+    this.moneyVolumeRatio = 0,
+    this.moneyVolume15Ratio = 0,
+    this.moneyTlVolume = 0,
+    this.moneyCmf = 0,
+    this.moneyVwap = 0,
+    this.moneyRsi = 0,
+    this.moneyRadarAvailable = false,
   });
 
   double get support => analysis.support;
@@ -48,6 +70,16 @@ class DailyTradeCandidate {
     int? globalScore,
     int? crocScore,
     String? contextLabel,
+    int? moneyScore,
+    int? memoryScore,
+    int? overboughtScore,
+    double? moneyVolumeRatio,
+    double? moneyVolume15Ratio,
+    double? moneyTlVolume,
+    double? moneyCmf,
+    double? moneyVwap,
+    double? moneyRsi,
+    bool? moneyRadarAvailable,
   }) {
     return DailyTradeCandidate(
       symbol: symbol,
@@ -62,6 +94,16 @@ class DailyTradeCandidate {
       crocScore: crocScore ?? this.crocScore,
       tradeReason: tradeReason,
       contextLabel: contextLabel ?? this.contextLabel,
+      moneyScore: moneyScore ?? this.moneyScore,
+      memoryScore: memoryScore ?? this.memoryScore,
+      overboughtScore: overboughtScore ?? this.overboughtScore,
+      moneyVolumeRatio: moneyVolumeRatio ?? this.moneyVolumeRatio,
+      moneyVolume15Ratio: moneyVolume15Ratio ?? this.moneyVolume15Ratio,
+      moneyTlVolume: moneyTlVolume ?? this.moneyTlVolume,
+      moneyCmf: moneyCmf ?? this.moneyCmf,
+      moneyVwap: moneyVwap ?? this.moneyVwap,
+      moneyRsi: moneyRsi ?? this.moneyRsi,
+      moneyRadarAvailable: moneyRadarAvailable ?? this.moneyRadarAvailable,
     );
   }
 

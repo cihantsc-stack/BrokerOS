@@ -169,11 +169,9 @@ class _InstitutionalFlowCenterCardState
                         title: 'Yabancı',
                         value: '%${data.foreignRatio.toStringAsFixed(1)}',
                       ),
-                      _MetricChip(
+                      const _MetricChip(
                         title: 'Fon Akışı',
-                        value:
-                            '${data.fundFlow >= 0 ? '+' : ''}'
-                            '${data.fundFlow.toStringAsFixed(1)}',
+                        value: 'VERİ BEKLENİYOR',
                       ),
                       _MetricChip(
                         title: 'Lot Kilidi',

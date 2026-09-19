@@ -10,13 +10,7 @@ class CrocPredictionEngine {
     final snapshot = PredictionSnapshot.fromStock(stock);
 
     return PredictionHorizon.values
-        .map(
-          (horizon) => _analyze(
-            stock,
-            snapshot,
-            horizon,
-          ),
-        )
+        .map((horizon) => _analyze(stock, snapshot, horizon))
         .toList(growable: false);
   }
 
@@ -44,17 +38,12 @@ class CrocPredictionEngine {
     add(stock.newsScore, weights.news);
 
     if (stock.riskScore > 0) {
-      add(
-        100 - stock.riskScore.clamp(0, 100),
-        weights.riskDiscipline,
-      );
+      add(100 - stock.riskScore.clamp(0, 100), weights.riskDiscipline);
     }
 
-    final rawScore =
-        totalWeight <= 0 ? 0.0 : weightedSum / totalWeight;
+    final rawScore = totalWeight <= 0 ? 0.0 : weightedSum / totalWeight;
 
-    final coverage =
-        (stock.activeSignalCount / 6.0).clamp(0.0, 1.0).toDouble();
+    final coverage = (stock.activeSignalCount / 6.0).clamp(0.0, 1.0).toDouble();
 
     final agreement = _agreement(stock);
 
@@ -73,44 +62,32 @@ class CrocPredictionEngine {
       horizon: horizon,
     );
 
-    final adjustedScore = (
-      rawScore +
-      regimeAdjustment -
-      conflictPenalty -
-      coveragePenalty
-    ).clamp(0.0, 100.0);
+    final adjustedScore =
+        (rawScore + regimeAdjustment - conflictPenalty - coveragePenalty).clamp(
+          0.0,
+          100.0,
+        );
 
-    final confidence = (
-      (coverage * 52) +
-      (agreement * 38) +
-      (_confidenceBonus(stock) * 10)
-    ).round().clamp(0, 100);
+    final confidence =
+        ((coverage * 52) + (agreement * 38) + (_confidenceBonus(stock) * 10))
+            .round()
+            .clamp(0, 100);
 
-    final confidenceAdjusted = (
-      confidence -
-      _confidenceCoveragePenalty(stock.activeSignalCount)
-    ).clamp(0, 100);
+    final confidenceAdjusted =
+        (confidence - _confidenceCoveragePenalty(stock.activeSignalCount))
+            .clamp(0, 100);
 
-    final probability = (
-      (adjustedScore * 0.82) +
-      (confidenceAdjusted * 0.18)
-    ).round().clamp(5, 95);
+    final probability = ((adjustedScore * 0.82) + (confidenceAdjusted * 0.18))
+        .round()
+        .clamp(5, 95);
 
     final risk = stock.riskScore > 0
         ? stock.riskScore.clamp(0, 100).toInt()
         : _inferredRisk(stock);
 
-    final direction = _direction(
-      probability,
-      confidenceAdjusted,
-      risk,
-    );
+    final direction = _direction(probability, confidenceAdjusted, risk);
 
-    final positiveFactors = _positive(
-      stock,
-      horizon,
-      regime,
-    );
+    final positiveFactors = _positive(stock, horizon, regime);
 
     final negativeFactors = _negative(
       stock,
@@ -134,9 +111,7 @@ class CrocPredictionEngine {
     );
   }
 
-  _PredictionWeights _weights(
-    PredictionHorizon horizon,
-  ) {
+  _PredictionWeights _weights(PredictionHorizon horizon) {
     switch (horizon) {
       case PredictionHorizon.oneDay:
         return const _PredictionWeights(
@@ -177,29 +152,23 @@ class CrocPredictionEngine {
       stock.institutionalScore,
       stock.momentumScore,
       stock.newsScore,
-      if (stock.riskScore > 0)
-        100 - stock.riskScore.clamp(0, 100).toInt(),
+      if (stock.riskScore > 0) 100 - stock.riskScore.clamp(0, 100).toInt(),
     ].where((value) => value > 0).toList();
 
     if (scores.isEmpty) return 0.0;
     if (scores.length == 1) return 0.45;
 
-    final mean =
-        scores.reduce((a, b) => a + b) / scores.length;
+    final mean = scores.reduce((a, b) => a + b) / scores.length;
 
-    final variance = scores
-            .map(
-              (value) =>
-                  (value - mean) * (value - mean),
-            )
+    final variance =
+        scores
+            .map((value) => (value - mean) * (value - mean))
             .reduce((a, b) => a + b) /
         scores.length;
 
     final standardDeviation = _sqrt(variance);
 
-    return (1.0 - (standardDeviation / 42.0))
-        .clamp(0.0, 1.0)
-        .toDouble();
+    return (1.0 - (standardDeviation / 42.0)).clamp(0.0, 1.0).toDouble();
   }
 
   double _sqrt(double value) {
@@ -214,9 +183,7 @@ class CrocPredictionEngine {
     return x;
   }
 
-  double _conflictPenalty(
-    StockAnalysis stock,
-  ) {
+  double _conflictPenalty(StockAnalysis stock) {
     final scores = <int>[
       stock.technicalScore,
       stock.smartMoneyScore,
@@ -227,11 +194,9 @@ class CrocPredictionEngine {
 
     if (scores.length < 2) return 0;
 
-    final strongPositive =
-        scores.where((value) => value >= 65).length;
+    final strongPositive = scores.where((value) => value >= 65).length;
 
-    final strongNegative =
-        scores.where((value) => value <= 40).length;
+    final strongNegative = scores.where((value) => value <= 40).length;
 
     if (strongPositive >= 2 && strongNegative >= 2) {
       return 8.0;
@@ -275,9 +240,7 @@ class CrocPredictionEngine {
     }
   }
 
-  int _confidenceCoveragePenalty(
-    int activeSignalCount,
-  ) {
+  int _confidenceCoveragePenalty(int activeSignalCount) {
     if (activeSignalCount >= 6) return 0;
     if (activeSignalCount == 5) return 3;
     if (activeSignalCount == 4) return 7;
@@ -287,18 +250,14 @@ class CrocPredictionEngine {
     return 40;
   }
 
-  double _confidenceBonus(
-    StockAnalysis stock,
-  ) {
+  double _confidenceBonus(StockAnalysis stock) {
     var bonus = 0.0;
 
-    if (stock.technicalScore >= 60 &&
-        stock.momentumScore >= 60) {
+    if (stock.technicalScore >= 60 && stock.momentumScore >= 60) {
       bonus += 0.35;
     }
 
-    if (stock.smartMoneyScore >= 60 &&
-        stock.institutionalScore >= 60) {
+    if (stock.smartMoneyScore >= 60 && stock.institutionalScore >= 60) {
       bonus += 0.35;
     }
 
@@ -306,8 +265,7 @@ class CrocPredictionEngine {
       bonus += 0.15;
     }
 
-    if (stock.riskScore > 0 &&
-        stock.riskScore <= 45) {
+    if (stock.riskScore > 0 && stock.riskScore <= 45) {
       bonus += 0.15;
     }
 
@@ -359,18 +317,14 @@ class CrocPredictionEngine {
     return 0.0;
   }
 
-  int _inferredRisk(
-    StockAnalysis stock,
-  ) {
+  int _inferredRisk(StockAnalysis stock) {
     final negativeSignals = <int>[
       stock.technicalScore,
       stock.smartMoneyScore,
       stock.institutionalScore,
       stock.momentumScore,
       stock.newsScore,
-    ].where(
-      (value) => value > 0 && value < 50,
-    ).length;
+    ].where((value) => value > 0 && value < 50).length;
 
     if (negativeSignals >= 4) return 78;
     if (negativeSignals >= 3) return 68;
@@ -380,24 +334,16 @@ class CrocPredictionEngine {
     return 38;
   }
 
-  String _direction(
-    int probability,
-    int confidence,
-    int risk,
-  ) {
+  String _direction(int probability, int confidence, int risk) {
     if (confidence < 35) {
       return 'VERİ YETERSİZ';
     }
 
-    if (probability >= 78 &&
-        confidence >= 62 &&
-        risk <= 55) {
+    if (probability >= 78 && confidence >= 62 && risk <= 55) {
       return 'GÜÇLÜ POZİTİF';
     }
 
-    if (probability >= 65 &&
-        confidence >= 48 &&
-        risk <= 65) {
+    if (probability >= 65 && confidence >= 48 && risk <= 65) {
       return 'POZİTİF';
     }
 
@@ -412,9 +358,7 @@ class CrocPredictionEngine {
     return 'NEGATİF';
   }
 
-  String _regime(
-    StockAnalysis stock,
-  ) {
+  String _regime(StockAnalysis stock) {
     if (stock.activeSignalCount <= 2) {
       return 'VERİ KAPSAMI DÜŞÜK';
     }
@@ -431,8 +375,7 @@ class CrocPredictionEngine {
       return 'TREND VAR / MOMENTUM ZAYIF';
     }
 
-    if (stock.smartMoneyScore >= 65 &&
-        stock.institutionalScore >= 60) {
+    if (stock.smartMoneyScore >= 65 && stock.institutionalScore >= 60) {
       return 'PARA AKIŞI DESTEKLİ';
     }
 
@@ -466,21 +409,16 @@ class CrocPredictionEngine {
       factors.add('Haber/KAP etkisi olumlu');
     }
 
-    if (stock.riskScore > 0 &&
-        stock.riskScore <= 45) {
+    if (stock.riskScore > 0 && stock.riskScore <= 45) {
       factors.add('Risk baskısı sınırlı');
     }
 
     if (regime == 'TREND DESTEKLİ') {
-      factors.add(
-        '${horizon.label} görünümünde trend teyidi var',
-      );
+      factors.add('${horizon.label} görünümünde trend teyidi var');
     }
 
     if (regime == 'PARA AKIŞI DESTEKLİ') {
-      factors.add(
-        '${horizon.label} görünümünde para akışı güçlü',
-      );
+      factors.add('${horizon.label} görünümünde para akışı güçlü');
     }
 
     return factors;
@@ -494,28 +432,23 @@ class CrocPredictionEngine {
   ) {
     final factors = <String>[];
 
-    if (stock.technicalScore > 0 &&
-        stock.technicalScore < 45) {
+    if (stock.technicalScore > 0 && stock.technicalScore < 45) {
       factors.add('Teknik yapı zayıf');
     }
 
-    if (stock.smartMoneyScore > 0 &&
-        stock.smartMoneyScore < 45) {
+    if (stock.smartMoneyScore > 0 && stock.smartMoneyScore < 45) {
       factors.add('Smart Money desteği zayıf');
     }
 
-    if (stock.institutionalScore > 0 &&
-        stock.institutionalScore < 45) {
+    if (stock.institutionalScore > 0 && stock.institutionalScore < 45) {
       factors.add('Kurumsal akış zayıf');
     }
 
-    if (stock.momentumScore > 0 &&
-        stock.momentumScore < 45) {
+    if (stock.momentumScore > 0 && stock.momentumScore < 45) {
       factors.add('Momentum zayıf');
     }
 
-    if (stock.newsScore > 0 &&
-        stock.newsScore < 45) {
+    if (stock.newsScore > 0 && stock.newsScore < 45) {
       factors.add('Haber/KAP etkisi zayıf');
     }
 
@@ -524,9 +457,7 @@ class CrocPredictionEngine {
     }
 
     if (stock.activeSignalCount < 4) {
-      factors.add(
-        '${horizon.label} için veri kapsamı sınırlı',
-      );
+      factors.add('${horizon.label} için veri kapsamı sınırlı');
     }
 
     if (conflictPenalty >= 5) {

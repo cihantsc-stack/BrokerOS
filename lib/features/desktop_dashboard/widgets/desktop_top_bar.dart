@@ -21,6 +21,8 @@ class DesktopTopBar extends StatelessWidget {
               children: [
                 Text(
                   'Grafiği değil, paranın izini sür.',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 17,
@@ -31,6 +33,8 @@ class DesktopTopBar extends StatelessWidget {
                 SizedBox(height: 4),
                 Text(
                   'CROC AI küresel akışı, teknik yapıyı ve kurumsal parayı birlikte analiz eder.',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Color(0xFF71877F), fontSize: 11),
                 ),
               ],

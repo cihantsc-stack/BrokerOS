@@ -103,11 +103,19 @@ class YahooBistMarketDataSource {
         lastCandleTime.month == marketTime.month &&
         lastCandleTime.day == marketTime.day;
 
-    final prev = lastCandleIsToday && candles.length > 1
+    final gatewayChange = (decoded['changePercent'] as num?)?.toDouble();
+
+    final fallbackPrev = lastCandleIsToday && candles.length > 1
         ? candles[candles.length - 2].close
         : last.close;
 
-    final change = prev == 0 ? 0.0 : ((price - prev) / prev) * 100;
+    final fallbackChange = fallbackPrev == 0
+        ? 0.0
+        : ((price - fallbackPrev) / fallbackPrev) * 100;
+
+    // Gateway gunluk degisimi birincil kaynaktir.
+    // Mum hesabi sadece gateway bu alani dondurmezse kullanilir.
+    final change = gatewayChange ?? fallbackChange;
     return YahooBistSnapshot(
       tick: MarketTick(
         symbol: cleanCode,

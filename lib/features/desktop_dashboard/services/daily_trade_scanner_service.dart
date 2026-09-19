@@ -1,9 +1,13 @@
 import '../../../core/analysis/croc_technical_analysis.dart';
 import '../../../core/bist/database/bist100_master_database.dart';
+import '../../../core/bist/models/bist_stock.dart';
+import '../../../core/bist/services/croc_bist_tradable_universe.dart';
 import '../../../core/bist/engine/sector_strength_engine.dart';
 import '../../../core/bist/models/bist_stock_tick.dart';
 import '../../../core/bist/models/sector_strength.dart';
 import '../../../core/data_foundation/market/yahoo_bist_market_data_source.dart';
+import '../../../core/signals/croc_live_signal_engine.dart';
+import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
 import 'global_pulse_service.dart';
 
@@ -13,6 +17,7 @@ class DailyTradeScannerService {
   static final DailyTradeScannerService instance = DailyTradeScannerService._();
 
   final YahooBistMarketDataSource _source = YahooBistMarketDataSource();
+  final CrocLiveSignalEngine _liveSignalEngine = const CrocLiveSignalEngine();
   final CrocTechnicalAnalysisEngine _engine =
       const CrocTechnicalAnalysisEngine();
 
@@ -26,13 +31,57 @@ class DailyTradeScannerService {
 
   int get latestGlobalScore => _latestGlobalScore;
 
+  List<CrazyMoneyCandidate> _latestCrazyMoneyCandidates = const [];
+
+  List<CrazyMoneyCandidate> get latestCrazyMoneyCandidates =>
+      _latestCrazyMoneyCandidates;
+
   List<DailyTradeCandidate>? _cache;
   DateTime? _cacheTime;
 
+  Future<List<DailyTradeCandidate>>? _inFlightScan;
+
   Future<List<DailyTradeCandidate>> scan({
     bool forceRefresh = false,
-    int concurrency = 10,
+    int concurrency = 15,
+  }) {
+    // Gecerli cache varsa tekrar tarama yapma.
+    if (!forceRefresh &&
+        _cache != null &&
+        _cacheTime != null &&
+        DateTime.now().difference(_cacheTime!) < const Duration(minutes: 5)) {
+      return Future.value(_cache!);
+    }
+
+    // Ayni anda ikinci tam BIST taramasini baslatma.
+    final running = _inFlightScan;
+    if (running != null) {
+      print('CROC SINGLE FLIGHT | DEVAM EDEN TARAMA PAYLASILDI');
+      return running;
+    }
+
+    final future = _scanInternal(
+      forceRefresh: forceRefresh,
+      concurrency: concurrency,
+    );
+
+    _inFlightScan = future;
+
+    future.whenComplete(() {
+      if (identical(_inFlightScan, future)) {
+        _inFlightScan = null;
+      }
+    });
+
+    return future;
+  }
+
+  Future<List<DailyTradeCandidate>> _scanInternal({
+    bool forceRefresh = false,
+    int concurrency = 15,
   }) async {
+    // CROC TIMING V3
+    final scanWatch = Stopwatch()..start();
     if (!forceRefresh &&
         _cache != null &&
         _cacheTime != null &&
@@ -49,23 +98,68 @@ class DailyTradeScannerService {
       _latestGlobalScore = 50;
     }
 
-    final universe = Bist100MasterDatabase.stocks;
+    // ========================================================
+    // CROC DINAMIK BIST EVRENI
+    //
+    // KAP aktif şirket evreni -> Yahoo işlem görebilirlik
+    // doğrulaması -> merkezi CROC tarama evreni.
+    //
+    // Eski BIST100 veritabanı yalnızca mevcut sektör
+    // bilgisini tamamlamak için fallback olarak kullanılır.
+    // ========================================================
+
+    final tradableMembers = await CrocBistTradableUniverse().fetch();
+
+    final knownSectors = <String, String>{
+      for (final stock in Bist100MasterDatabase.stocks)
+        stock.code.toUpperCase(): stock.sector,
+    };
+
+    final universe = tradableMembers
+        .map(
+          (member) => BistStock(
+            code: member.code,
+            name: member.title,
+            sector: knownSectors[member.code.toUpperCase()] ?? 'Diğer',
+          ),
+        )
+        .toList(growable: false);
     final results = <DailyTradeCandidate>[];
+    final crazyMoneyResults = <CrazyMoneyCandidate>[];
+    final crazyMoneyDiagnostics = <CrazyMoneyCandidate>[];
     final sectorTicks = <BistStockTick>[];
 
     for (var i = 0; i < universe.length; i += concurrency) {
       final batch = universe.skip(i).take(concurrency).toList();
 
+      final batchWatch = Stopwatch()..start();
+
       final rows = await Future.wait(
         batch.map((stock) async {
           try {
-            final snapshot = await _source.fetch(
+            final dailyFuture = _source.fetch(
               stock.code,
               range: '1y',
               interval: '1d',
             );
 
-            if (snapshot.candles.length < 20) return null;
+            final Future<YahooBistSnapshot?> intradayFuture = _source
+                .fetch(stock.code, range: '5d', interval: '5m')
+                .then<YahooBistSnapshot?>(
+                  (snapshot) => snapshot,
+                  onError: (Object error, StackTrace stackTrace) => null,
+                );
+
+            final snapshot = await dailyFuture;
+
+            if (snapshot.candles.length < 20) {
+              try {
+                await intradayFuture;
+              } catch (_) {
+                // Intraday istegi baslatildiysa hata Future uzerinde tutulmasin.
+              }
+              return null;
+            }
 
             final analysis = _engine.analyze(snapshot.candles);
             final livePrice = snapshot.tick.price;
@@ -79,12 +173,223 @@ class DailyTradeScannerService {
               ),
             );
 
-            if (!_isTradeable(
-              analysis: analysis,
-              livePrice: livePrice,
-              changePercent: snapshot.tick.changePercent,
-            )) {
-              return null;
+            // CROC PARA RADARI V2 - INTRADAY
+            CrocLiveDiagnostic? moneyDiagnostic;
+
+            try {
+              final intradaySnapshot = await intradayFuture;
+
+              if (intradaySnapshot != null &&
+                  intradaySnapshot.candles.length >= 20) {
+                moneyDiagnostic = _liveSignalEngine.diagnose(
+                  intradaySnapshot.candles,
+                );
+              }
+            } catch (_) {
+              // Intraday veri yoksa gunluk radar calismaya devam eder.
+              moneyDiagnostic = null;
+            }
+
+            // ==================================================
+            // CROC CRAZY MONEY - BAGIMSIZ PARA AKISI
+            //
+            // Normal teknik firsat filtresinden bagimsizdir.
+            // Tum dinamik BIST evrenindeki guclu intraday
+            // para hareketlerini ayri havuzda toplar.
+            // ==================================================
+
+            if (moneyDiagnostic != null) {
+              final diagnostic = moneyDiagnostic;
+
+              final crazyScore = _crazyMoneyScore(
+                diagnostic: diagnostic,
+                livePrice: livePrice,
+                changePercent: snapshot.tick.changePercent,
+              );
+
+              crazyMoneyDiagnostics.add(
+                CrazyMoneyCandidate(
+                  symbol: stock.code,
+                  company: stock.name,
+                  sector: stock.sector,
+                  livePrice: livePrice,
+                  changePercent: snapshot.tick.changePercent,
+                  crazyScore: crazyScore,
+                  moneyScore: diagnostic.moneyScore,
+                  memoryScore: diagnostic.memoryScore,
+                  overboughtScore: diagnostic.overboughtScore,
+                  volumeRatio: diagnostic.volumeRatio,
+                  volume15Ratio: diagnostic.volume15Ratio,
+                  tlVolume: diagnostic.tlVolume,
+                  cmf: diagnostic.chaikinMoneyFlow,
+                  vwap: diagnostic.vwap,
+                  rsi: diagnostic.rsi,
+                  memory30MaxRatio: diagnostic.memory30MaxRatio,
+                  memory60MaxRatio: diagnostic.memory60MaxRatio,
+                  memory30MinutesAgo: diagnostic.memory30MinutesAgo,
+                  memory60MinutesAgo: diagnostic.memory60MinutesAgo,
+                  memory30PriceHold: diagnostic.memory30PriceHold,
+                  memory60PriceHold: diagnostic.memory60PriceHold,
+                  reason: _crazyMoneyReason(
+                    diagnostic: diagnostic,
+                    livePrice: livePrice,
+                  ),
+                ),
+              );
+              // CROC SPECIAL MONEY DIAG V3
+              // SADECE LOG - ESIKLERI VE KARAR MOTORUNU DEGISTIRMEZ.
+              if (stock.code == 'LILAK' || stock.code == 'ALFAS') {
+                final diagAboveVwap =
+                    diagnostic.vwap > 0 && livePrice >= diagnostic.vwap;
+
+                final diagVolumeConfirmed =
+                    diagnostic.volumeRatio >= 1.35 ||
+                    diagnostic.volume15Ratio >= 1.25;
+
+                final diagEarlyGate =
+                    crazyScore >= 60 &&
+                    diagnostic.moneyScore >= 72 &&
+                    diagnostic.memoryScore >= 65 &&
+                    diagnostic.volumeRatio >= 2.0 &&
+                    diagnostic.volume15Ratio >= 1.5 &&
+                    diagnostic.chaikinMoneyFlow > 0 &&
+                    diagAboveVwap &&
+                    diagnostic.rsi < 82 &&
+                    snapshot.tick.changePercent < 9.5;
+
+                final diagNormalGate =
+                    crazyScore >= 68 &&
+                    diagnostic.moneyScore >= 58 &&
+                    diagVolumeConfirmed;
+
+                final diagReasons = <String>[];
+
+                if (crazyScore < 60) {
+                  diagReasons.add('EARLY Crazy<60');
+                }
+
+                if (diagnostic.moneyScore < 72) {
+                  diagReasons.add('EARLY Para<72');
+                }
+
+                if (diagnostic.memoryScore < 65) {
+                  diagReasons.add('EARLY Hafiza<65');
+                }
+
+                if (diagnostic.volumeRatio < 2.0) {
+                  diagReasons.add('EARLY 5DK<2.0x');
+                }
+
+                if (diagnostic.volume15Ratio < 1.5) {
+                  diagReasons.add('EARLY 15DK<1.5x');
+                }
+
+                if (diagnostic.chaikinMoneyFlow <= 0) {
+                  diagReasons.add('EARLY CMF<=0');
+                }
+
+                if (!diagAboveVwap) {
+                  diagReasons.add('EARLY VWAP ALTI');
+                }
+
+                if (diagnostic.rsi >= 82) {
+                  diagReasons.add('EARLY RSI>=82');
+                }
+
+                if (snapshot.tick.changePercent >= 9.5) {
+                  diagReasons.add('DEGISIM>=9.5');
+                }
+
+                if (crazyScore < 68) {
+                  diagReasons.add('NORMAL Crazy<68');
+                }
+
+                if (diagnostic.moneyScore < 58) {
+                  diagReasons.add('NORMAL Para<58');
+                }
+
+                if (!diagVolumeConfirmed) {
+                  diagReasons.add('NORMAL Hacim teyidi yok');
+                }
+
+                // ignore: avoid_print
+                print('');
+                // ignore: avoid_print
+                print('=== CROC SPECIAL MONEY DIAG | ${stock.code} ===');
+                // ignore: avoid_print
+                print(
+                  'Crazy $crazyScore | '
+                  'Para ${diagnostic.moneyScore} | '
+                  'Hafiza ${diagnostic.memoryScore}',
+                );
+                // ignore: avoid_print
+                print(
+                  '5DK ${diagnostic.volumeRatio.toStringAsFixed(2)}x | '
+                  '15DK ${diagnostic.volume15Ratio.toStringAsFixed(2)}x',
+                );
+                // ignore: avoid_print
+                print(
+                  'CMF ${diagnostic.chaikinMoneyFlow.toStringAsFixed(2)} | '
+                  'VWAP ${diagnostic.vwap.toStringAsFixed(2)} | '
+                  'FIYAT ${livePrice.toStringAsFixed(2)}',
+                );
+                // ignore: avoid_print
+                print(
+                  'VWAP ${diagAboveVwap ? "USTU" : "ALTI"} | '
+                  'RSI ${diagnostic.rsi.toStringAsFixed(0)} | '
+                  'DEGISIM %${snapshot.tick.changePercent.toStringAsFixed(2)}',
+                );
+                // ignore: avoid_print
+                print('EARLY GATE  : ${diagEarlyGate ? "PASS" : "FAIL"}');
+                // ignore: avoid_print
+                print('NORMAL GATE : ${diagNormalGate ? "PASS" : "FAIL"}');
+                // ignore: avoid_print
+                print(
+                  'NEDEN       : '
+                  '${diagReasons.isEmpty ? "GATE UYGUN" : diagReasons.join(" | ")}',
+                );
+                // ignore: avoid_print
+                print('================================================');
+                // ignore: avoid_print
+                print('');
+              }
+
+              if (_isCrazyMoneyCandidate(
+                diagnostic: diagnostic,
+                livePrice: livePrice,
+                changePercent: snapshot.tick.changePercent,
+                crazyScore: crazyScore,
+              )) {
+                crazyMoneyResults.add(
+                  CrazyMoneyCandidate(
+                    symbol: stock.code,
+                    company: stock.name,
+                    sector: stock.sector,
+                    livePrice: livePrice,
+                    changePercent: snapshot.tick.changePercent,
+                    crazyScore: crazyScore,
+                    moneyScore: diagnostic.moneyScore,
+                    memoryScore: diagnostic.memoryScore,
+                    overboughtScore: diagnostic.overboughtScore,
+                    volumeRatio: diagnostic.volumeRatio,
+                    volume15Ratio: diagnostic.volume15Ratio,
+                    tlVolume: diagnostic.tlVolume,
+                    cmf: diagnostic.chaikinMoneyFlow,
+                    vwap: diagnostic.vwap,
+                    rsi: diagnostic.rsi,
+                    memory30MaxRatio: diagnostic.memory30MaxRatio,
+                    memory60MaxRatio: diagnostic.memory60MaxRatio,
+                    memory30MinutesAgo: diagnostic.memory30MinutesAgo,
+                    memory60MinutesAgo: diagnostic.memory60MinutesAgo,
+                    memory30PriceHold: diagnostic.memory30PriceHold,
+                    memory60PriceHold: diagnostic.memory60PriceHold,
+                    reason: _crazyMoneyReason(
+                      diagnostic: diagnostic,
+                      livePrice: livePrice,
+                    ),
+                  ),
+                );
+              }
             }
 
             final rawTradeScore = _tradeScore(
@@ -113,6 +418,30 @@ class DailyTradeScannerService {
                 ? '$baseTradeReason • Veri güveni ${snapshot.dataQualityScore}/100'
                 : baseTradeReason;
 
+            // ==================================================
+
+            // CROC CRAZY MONEY PIPELINE
+
+            //
+
+            // Intraday Para Radari + Memory tum dinamik
+
+            // evreni gorur. Teknik filtre bundan sonra
+
+            // yalniz normal firsat listesini sinirlar.
+
+            // ==================================================
+
+            if (!_isTradeable(
+              analysis: analysis,
+
+              livePrice: livePrice,
+
+              changePercent: snapshot.tick.changePercent,
+            )) {
+              return null;
+            }
+
             return DailyTradeCandidate(
               symbol: stock.code,
               company: stock.name,
@@ -126,6 +455,16 @@ class DailyTradeScannerService {
               crocScore: tradeScore,
               tradeReason: tradeReason,
               contextLabel: 'Bağlam hesaplanıyor',
+              moneyScore: moneyDiagnostic?.moneyScore ?? 0,
+              memoryScore: moneyDiagnostic?.memoryScore ?? 0,
+              overboughtScore: moneyDiagnostic?.overboughtScore ?? 0,
+              moneyVolumeRatio: moneyDiagnostic?.volumeRatio ?? 0,
+              moneyVolume15Ratio: moneyDiagnostic?.volume15Ratio ?? 0,
+              moneyTlVolume: moneyDiagnostic?.tlVolume ?? 0,
+              moneyCmf: moneyDiagnostic?.chaikinMoneyFlow ?? 0,
+              moneyVwap: moneyDiagnostic?.vwap ?? 0,
+              moneyRsi: moneyDiagnostic?.rsi ?? 0,
+              moneyRadarAvailable: moneyDiagnostic != null,
             );
           } catch (_) {
             return null;
@@ -134,6 +473,14 @@ class DailyTradeScannerService {
       );
 
       results.addAll(rows.whereType<DailyTradeCandidate>());
+
+      batchWatch.stop();
+
+      print(
+        'CROC TIMING V3 | BATCH ${(i ~/ concurrency) + 1} | '
+        '${batch.length} HISSE | '
+        '${(batchWatch.elapsedMilliseconds / 1000).toStringAsFixed(2)} SN',
+      );
     }
 
     _latestSectorStrengths = sectorTicks.isEmpty
@@ -152,6 +499,9 @@ class DailyTradeScannerService {
         tradeScore: candidate.tradeScore,
         sectorScore: sectorScore,
         globalScore: globalScore,
+        moneyScore: candidate.moneyScore,
+        overboughtScore: candidate.overboughtScore,
+        moneyRadarAvailable: candidate.moneyRadarAvailable,
       );
 
       return candidate.copyWith(
@@ -169,8 +519,64 @@ class DailyTradeScannerService {
 
     contextualResults.sort(_compareCandidates);
 
+    crazyMoneyDiagnostics.sort((a, b) {
+      final scoreCompare = b.crazyScore.compareTo(a.crazyScore);
+      if (scoreCompare != 0) return scoreCompare;
+
+      final moneyCompare = b.moneyScore.compareTo(a.moneyScore);
+      if (moneyCompare != 0) return moneyCompare;
+
+      return b.tlVolume.compareTo(a.tlVolume);
+    });
+
+    print('=== CROC CRAZY MONEY HAM TOP 5 ===');
+
+    for (final item in crazyMoneyDiagnostics.take(5)) {
+      print(
+        '${item.symbol} | '
+        'Crazy ${item.crazyScore} | '
+        'Para ${item.moneyScore} | '
+        'Hafiza ${item.memoryScore} | '
+        'Hacim ${item.volumeRatio.toStringAsFixed(2)}x | '
+        '15DK ${item.volume15Ratio.toStringAsFixed(2)}x | '
+        'CMF ${item.cmf.toStringAsFixed(2)} | '
+        'VWAP ${item.vwap.toStringAsFixed(2)} | '
+        'FIYAT ${item.livePrice.toStringAsFixed(2)} | '
+        'VWAP ${item.aboveVwap ? "USTU" : "ALTI"} | '
+        'RSI ${item.rsi.toStringAsFixed(0)} | '
+        'Degisim %${item.changePercent.toStringAsFixed(2)}',
+      );
+    }
+
+    crazyMoneyResults.sort((a, b) {
+      final scoreCompare = b.crazyScore.compareTo(a.crazyScore);
+      if (scoreCompare != 0) return scoreCompare;
+
+      final moneyCompare = b.moneyScore.compareTo(a.moneyScore);
+      if (moneyCompare != 0) return moneyCompare;
+
+      final memoryCompare = b.memoryScore.compareTo(a.memoryScore);
+      if (memoryCompare != 0) return memoryCompare;
+
+      return b.tlVolume.compareTo(a.tlVolume);
+    });
+
+    _latestCrazyMoneyCandidates = List<CrazyMoneyCandidate>.unmodifiable(
+      crazyMoneyResults,
+    );
+
     _cache = List.unmodifiable(contextualResults);
     _cacheTime = DateTime.now();
+
+    scanWatch.stop();
+
+    print('============================================================');
+    print(
+      'CROC TIMING V3 | TOTAL | '
+      '${(scanWatch.elapsedMilliseconds / 1000).toStringAsFixed(2)} SN | '
+      '${universe.length} HISSE',
+    );
+    print('============================================================');
 
     return _cache!;
   }
@@ -248,7 +654,7 @@ class DailyTradeScannerService {
     }
 
     final trend = analysis.trend;
-    if (trend.contains('Yüks') || trend.contains('YÃ¼ks')) {
+    if (trend.contains('Yüks') || trend.contains('Yüks')) {
       score += 10;
     } else if (trend.contains('Yatay')) {
       score += 4;
@@ -296,7 +702,7 @@ class DailyTradeScannerService {
     final reasons = <String>[];
 
     final trend = analysis.trend;
-    if (trend.contains('Yüks') || trend.contains('YÃ¼ks')) {
+    if (trend.contains('Yüks') || trend.contains('Yüks')) {
       reasons.add('Trend güçlü');
     }
 
@@ -333,11 +739,40 @@ class DailyTradeScannerService {
     required int tradeScore,
     required int sectorScore,
     required int globalScore,
+    required int moneyScore,
+    required int overboughtScore,
+    required bool moneyRadarAvailable,
   }) {
-    // Hissenin kendi kalitesi ana ağırlık.
-    // Sektör teyit eder, global ortam agresifliği ayarlar.
-    final weighted =
-        (tradeScore * 0.70) + (sectorScore * 0.20) + (globalScore * 0.10);
+    // Intraday Para Radari verisi yoksa eski skor sistemi korunur.
+    if (!moneyRadarAvailable) {
+      final weighted =
+          (tradeScore * 0.70) + (sectorScore * 0.20) + (globalScore * 0.10);
+
+      return weighted.round().clamp(0, 96);
+    }
+
+    // CROC PARA RADARI V2
+    // Teknik kalite ana omurga olmaya devam eder.
+    // Para Radari intraday para hareketini teyit eder.
+    //
+    // Teknik      : %55
+    // Sektor      : %15
+    // Global      : %10
+    // Para Radari : %20
+    var weighted =
+        (tradeScore * 0.55) +
+        (sectorScore * 0.15) +
+        (globalScore * 0.10) +
+        (moneyScore * 0.20);
+
+    // Asiri alim freni.
+    if (overboughtScore >= 95) {
+      weighted -= 10;
+    } else if (overboughtScore >= 80) {
+      weighted -= 6;
+    } else if (overboughtScore >= 60) {
+      weighted -= 3;
+    }
 
     return weighted.round().clamp(0, 96);
   }
@@ -373,6 +808,186 @@ class DailyTradeScannerService {
     }
 
     return 'Temkinli izleme';
+  }
+
+  int _crazyMoneyScore({
+    required CrocLiveDiagnostic diagnostic,
+    required double livePrice,
+    required double changePercent,
+  }) {
+    var score = 0.0;
+
+    // Ana para akisi %30
+    score += diagnostic.moneyScore.clamp(0, 100) * 0.30;
+
+    // Para hafizasi %25
+    score += diagnostic.memoryScore.clamp(0, 100) * 0.25;
+
+    // Anlik hacim %12
+    final volumeScore = ((diagnostic.volumeRatio - 1.0) * 32).clamp(0, 100);
+    score += volumeScore * 0.12;
+
+    // 15 dk hacim teyidi %8
+    final volume15Score = ((diagnostic.volume15Ratio - 1.0) * 35).clamp(0, 100);
+    score += volume15Score * 0.08;
+
+    // CMF %10
+    final cmfScore = ((diagnostic.chaikinMoneyFlow + 0.10) * 250).clamp(0, 100);
+    score += cmfScore * 0.10;
+
+    // VWAP ustunde tutunma %7
+    if (diagnostic.vwap > 0 && livePrice >= diagnostic.vwap) {
+      score += 7;
+    }
+
+    // TL hacim %8
+    if (diagnostic.tlVolume >= 1000000000) {
+      score += 8;
+    } else if (diagnostic.tlVolume >= 500000000) {
+      score += 7;
+    } else if (diagnostic.tlVolume >= 250000000) {
+      score += 5;
+    } else if (diagnostic.tlVolume >= 100000000) {
+      score += 3;
+    }
+
+    // Asiri alim freni
+    if (diagnostic.rsi >= 82) {
+      score -= 18;
+    } else if (diagnostic.rsi >= 78) {
+      score -= 10;
+    } else if (diagnostic.rsi >= 74) {
+      score -= 4;
+    }
+
+    // Gunluk kosma freni
+    if (changePercent >= 9.0) {
+      score -= 18;
+    } else if (changePercent >= 7.0) {
+      score -= 10;
+    } else if (changePercent >= 5.0) {
+      score -= 4;
+    }
+
+    // VWAP alti ceza
+    if (diagnostic.vwap > 0 && livePrice < diagnostic.vwap) {
+      score -= 8;
+    }
+
+    return score.round().clamp(0, 100);
+  }
+
+  bool _isCrazyMoneyCandidate({
+    required CrocLiveDiagnostic diagnostic,
+    required double livePrice,
+    required double changePercent,
+    required int crazyScore,
+  }) {
+    if (livePrice <= 0) return false;
+
+    final aboveVwap = diagnostic.vwap > 0 && livePrice >= diagnostic.vwap;
+
+    final volumeConfirmed =
+        diagnostic.volumeRatio >= 1.35 || diagnostic.volume15Ratio >= 1.25;
+
+    // ========================================================
+    // CROC EARLY MONEY GATE
+    //
+    // Normal Crazy Money kapisina henuz ulasmamis fakat
+    // para + hafiza + hacim + CMF + VWAP birlikte cok guclu
+    // olan erken para hareketlerini yakalar.
+    // ========================================================
+
+    final earlyMoneyGate =
+        crazyScore >= 60 &&
+        diagnostic.moneyScore >= 72 &&
+        diagnostic.memoryScore >= 65 &&
+        diagnostic.volumeRatio >= 2.0 &&
+        diagnostic.volume15Ratio >= 1.5 &&
+        diagnostic.chaikinMoneyFlow > 0 &&
+        aboveVwap &&
+        diagnostic.rsi < 82 &&
+        changePercent < 9.5;
+
+    // ========================================================
+    // NORMAL CRAZY MONEY GATE
+    // Mevcut ana kalite mantigi korunuyor.
+    // ========================================================
+
+    final normalMoneyGate =
+        crazyScore >= 68 && diagnostic.moneyScore >= 58 && volumeConfirmed;
+
+    // ========================================================
+    // CROC EXTREME FLOW GATE
+    // Olagan disi para/hacim hareketini erken gorunur yapar.
+    // Bu tek basina AL sinyali degildir.
+    // ========================================================
+
+    final extremeFlowGate =
+        crazyScore >= 55 &&
+        diagnostic.moneyScore >= 50 &&
+        diagnostic.memoryScore >= 70 &&
+        diagnostic.chaikinMoneyFlow > 0 &&
+        (diagnostic.volumeRatio >= 3.0 || diagnostic.volume15Ratio >= 3.0);
+
+    if (!normalMoneyGate && !earlyMoneyGate && !extremeFlowGate) {
+      return false;
+    }
+
+    // CMF negatif + VWAP alti birlikteyse her durumda RED.
+    if (diagnostic.chaikinMoneyFlow < 0 && !aboveVwap) {
+      return false;
+    }
+
+    // Fazla kosmus hareketi kovalamiyoruz.
+    if (diagnostic.rsi >= 86) return false;
+    if (changePercent >= 9.5) return false;
+
+    // Hafiza zayifsa daha sert anlik teyit.
+    if (diagnostic.memoryScore < 40 &&
+        diagnostic.moneyScore < 72 &&
+        diagnostic.volumeRatio < 1.8) {
+      return false;
+    }
+
+    return true;
+  }
+
+  String _crazyMoneyReason({
+    required CrocLiveDiagnostic diagnostic,
+    required double livePrice,
+  }) {
+    final parts = <String>[];
+
+    if (diagnostic.moneyScore >= 80) {
+      parts.add('Çok güçlü para girişi');
+    } else if (diagnostic.moneyScore >= 68) {
+      parts.add('Güçlü para girişi');
+    } else {
+      parts.add('Para girişi hızlanıyor');
+    }
+
+    if (diagnostic.memoryScore >= 70) {
+      parts.add('para hafızası güçlü');
+    } else if (diagnostic.memoryScore >= 50) {
+      parts.add('para hafızası teyitli');
+    }
+
+    if (diagnostic.volumeRatio >= 2.0) {
+      parts.add('hacim patlaması');
+    } else if (diagnostic.volumeRatio >= 1.5) {
+      parts.add('hacim güçlü');
+    }
+
+    if (diagnostic.chaikinMoneyFlow > 0.10) {
+      parts.add('CMF pozitif');
+    }
+
+    if (diagnostic.vwap > 0 && livePrice >= diagnostic.vwap) {
+      parts.add('VWAP üstü');
+    }
+
+    return parts.join(' • ');
   }
 
   int _compareCandidates(DailyTradeCandidate a, DailyTradeCandidate b) {

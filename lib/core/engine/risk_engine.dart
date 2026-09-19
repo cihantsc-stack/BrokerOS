@@ -51,11 +51,6 @@ class RiskEngine {
       reasons.add('Kurumsal para akışı negatif.');
     }
 
-    if (data.fundFlow < 0) {
-      score -= 8;
-      reasons.add('Fon çıkışı görülüyor.');
-    }
-
     if (data.newsScore < 40) {
       score -= 12;
       reasons.add('Haber akışı riskli.');

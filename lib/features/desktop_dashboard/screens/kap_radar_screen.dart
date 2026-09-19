@@ -12,8 +12,7 @@ class KapRadarScreen extends StatefulWidget {
 }
 
 class _KapRadarScreenState extends State<KapRadarScreen> {
-  static const String _base =
-      'https://croc-data-gateway.crocai.workers.dev/';
+  static const String _base = 'https://croc-data-gateway.crocai.workers.dev/';
 
   bool _loadingFeed = true;
   bool _loadingDetail = false;
@@ -36,18 +35,13 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {
-    final response = await http.get(uri).timeout(
-          const Duration(seconds: 20),
-        );
+    final response = await http.get(uri).timeout(const Duration(seconds: 20));
 
     if (response.statusCode != 200) {
-      throw Exception(
-        'HTTP ${response.statusCode}: ${response.body}',
-      );
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
     }
 
-    final decoded =
-        jsonDecode(utf8.decode(response.bodyBytes));
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
 
     if (decoded is! Map<String, dynamic>) {
       throw Exception('Beklenmeyen veri formatı');
@@ -55,8 +49,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
 
     if (decoded['ok'] != true) {
       throw Exception(
-        decoded['error']?.toString() ??
-            'CROC Data Gateway hata verdi',
+        decoded['error']?.toString() ?? 'CROC Data Gateway hata verdi',
       );
     }
 
@@ -77,20 +70,14 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
       // ---------------------------------------------------------
 
       final status = await _getJson(
-        Uri.parse(
-          '${_base}?mode=kap&action=status',
-        ),
+        Uri.parse('${_base}?mode=kap&action=status'),
       );
 
-      final lastIndex = int.tryParse(
-            status['lastDisclosureIndex']?.toString() ?? '',
-          ) ??
-          0;
+      final lastIndex =
+          int.tryParse(status['lastDisclosureIndex']?.toString() ?? '') ?? 0;
 
       if (lastIndex <= 0) {
-        throw Exception(
-          'Son KAP bildirim numarası alınamadı',
-        );
+        throw Exception('Son KAP bildirim numarası alınamadı');
       }
 
       // Son 50 kayıt.
@@ -101,31 +88,22 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
       // ---------------------------------------------------------
 
       final feedResult = await _getJson(
-        Uri.parse(
-          '${_base}?mode=kap&action=feed&from=$from',
-        ),
+        Uri.parse('${_base}?mode=kap&action=feed&from=$from'),
       );
 
-      final rawItems =
-          feedResult['items'] is List
-              ? feedResult['items'] as List
-              : <dynamic>[];
+      final rawItems = feedResult['items'] is List
+          ? feedResult['items'] as List
+          : <dynamic>[];
 
       final items = rawItems
           .whereType<Map>()
-          .map(
-            (item) => Map<String, dynamic>.from(item),
-          )
+          .map((item) => Map<String, dynamic>.from(item))
           .where(_isRealStockDisclosure)
           .toList();
 
-      items.sort(
-        (a, b) =>
-            _indexOf(b).compareTo(_indexOf(a)),
-      );
+      items.sort((a, b) => _indexOf(b).compareTo(_indexOf(a)));
 
-      final visible =
-          items.take(15).toList();
+      final visible = items.take(15).toList();
 
       if (!mounted) return;
 
@@ -136,9 +114,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
 
       // İlk gerçek bildirimi otomatik aç.
       if (visible.isNotEmpty) {
-        await _selectDisclosure(
-          visible.first,
-        );
+        await _selectDisclosure(visible.first);
       }
     } catch (e) {
       if (!mounted) return;
@@ -150,62 +126,42 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
     }
   }
 
-  bool _isRealStockDisclosure(
-    Map<String, dynamic> item,
-  ) {
-    final disclosureClass =
-        _text(item['disclosureClass'])
-            .toUpperCase();
+  bool _isRealStockDisclosure(Map<String, dynamic> item) {
+    final disclosureClass = _text(item['disclosureClass']).toUpperCase();
 
-    final companyId =
-        _text(item['companyId']);
+    final companyId = _text(item['companyId']);
 
     if (disclosureClass != 'ODA') {
       return false;
     }
 
-    if (companyId.isEmpty ||
-        companyId == '51') {
+    if (companyId.isEmpty || companyId == '51') {
       return false;
     }
 
-    if (item['fundId'] != null ||
-        item['fundCode'] != null) {
+    if (item['fundId'] != null || item['fundCode'] != null) {
       return false;
     }
 
-    final reports =
-        item['subReportIds'] is List
-            ? item['subReportIds'] as List
-            : <dynamic>[];
+    final reports = item['subReportIds'] is List
+        ? item['subReportIds'] as List
+        : <dynamic>[];
 
     final isTest = reports.any(
-      (e) => e
-          .toString()
-          .toLowerCase()
-          .contains('testnotification'),
+      (e) => e.toString().toLowerCase().contains('testnotification'),
     );
 
     return !isTest;
   }
 
   int _indexOf(Map<String, dynamic> item) {
-    return int.tryParse(
-          item['disclosureIndex']
-                  ?.toString() ??
-              '',
-        ) ??
-        0;
+    return int.tryParse(item['disclosureIndex']?.toString() ?? '') ?? 0;
   }
 
-  Future<void> _selectDisclosure(
-    Map<String, dynamic> item,
-  ) async {
-    final disclosureIndex =
-        _text(item['disclosureIndex']);
+  Future<void> _selectDisclosure(Map<String, dynamic> item) async {
+    final disclosureIndex = _text(item['disclosureIndex']);
 
-    final companyId =
-        _text(item['companyId']);
+    final companyId = _text(item['companyId']);
 
     if (disclosureIndex.isEmpty) {
       return;
@@ -223,22 +179,16 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
       // DETAIL CACHE
       // ---------------------------------------------------------
 
-      Map<String, dynamic>? detail =
-          _detailCache[disclosureIndex];
+      Map<String, dynamic>? detail = _detailCache[disclosureIndex];
 
       if (detail == null) {
-        final reports =
-            item['subReportIds'] is List
-                ? item['subReportIds'] as List
-                : <dynamic>[];
+        final reports = item['subReportIds'] is List
+            ? item['subReportIds'] as List
+            : <dynamic>[];
 
-        final subReport =
-            reports.isNotEmpty
-                ? reports.first.toString()
-                : '';
+        final subReport = reports.isNotEmpty ? reports.first.toString() : '';
 
-        final params =
-            <String, String>{
+        final params = <String, String>{
           'mode': 'kap',
           'action': 'detail',
           'index': disclosureIndex,
@@ -246,18 +196,14 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
         };
 
         if (subReport.isNotEmpty) {
-          params['subReport'] =
-              subReport;
+          params['subReport'] = subReport;
         }
 
         detail = await _getJson(
-          Uri.parse(_base).replace(
-            queryParameters: params,
-          ),
+          Uri.parse(_base).replace(queryParameters: params),
         );
 
-        _detailCache[disclosureIndex] =
-            detail;
+        _detailCache[disclosureIndex] = detail;
       }
 
       // ---------------------------------------------------------
@@ -267,33 +213,25 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
       Map<String, dynamic>? profile;
 
       if (companyId.isNotEmpty) {
-        profile =
-            _profileCache[companyId];
+        profile = _profileCache[companyId];
 
         if (profile == null) {
-          final member =
-              await _getJson(
+          final member = await _getJson(
             Uri.parse(_base).replace(
               queryParameters: {
                 'mode': 'kap',
-                'action':
-                    'member-detail',
+                'action': 'member-detail',
                 'id': companyId,
               },
             ),
           );
 
-          final rawProfile =
-              member['profile'];
+          final rawProfile = member['profile'];
 
           if (rawProfile is Map) {
-            profile =
-                Map<String, dynamic>.from(
-              rawProfile,
-            );
+            profile = Map<String, dynamic>.from(rawProfile);
 
-            _profileCache[companyId] =
-                profile;
+            _profileCache[companyId] = profile;
           }
         }
       }
@@ -324,9 +262,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
         children: [
           _header(),
           const SizedBox(height: 16),
-          Expanded(
-            child: _body(),
-          ),
+          Expanded(child: _body()),
         ],
       ),
     );
@@ -340,12 +276,8 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
           height: 46,
           decoration: BoxDecoration(
             color: const Color(0xFF082016),
-            borderRadius:
-                BorderRadius.circular(14),
-            border: Border.all(
-              color:
-                  const Color(0xFF176747),
-            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF176747)),
           ),
           child: const Icon(
             Icons.radar_rounded,
@@ -356,46 +288,34 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
         const SizedBox(width: 14),
         const Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'CROC KAP RADAR',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 23,
-                  fontWeight:
-                      FontWeight.w900,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               SizedBox(height: 3),
               Text(
                 'Son KAP akışını tara • bildirimi seç • CROC etkisini anında gör.',
-                style: TextStyle(
-                  color: Color(0xFF83988F),
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Color(0xFF83988F), fontSize: 12),
               ),
             ],
           ),
         ),
 
-        _statusBadge(
-          'MKK / KAP DEV',
-          const Color(0xFF70F4AD),
-        ),
+        _statusBadge('MKK / KAP DEV', const Color(0xFF70F4AD)),
 
         const SizedBox(width: 10),
 
         IconButton(
           tooltip: 'Radarı yenile',
-          onPressed:
-              _loadingFeed ? null : _loadRadar,
-          icon: const Icon(
-            Icons.refresh_rounded,
-          ),
-          color:
-              const Color(0xFF70F4AD),
+          onPressed: _loadingFeed ? null : _loadRadar,
+          icon: const Icon(Icons.refresh_rounded),
+          color: const Color(0xFF70F4AD),
         ),
       ],
     );
@@ -404,9 +324,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
   Widget _body() {
     if (_loadingFeed) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF70F4AD),
-        ),
+        child: CircularProgressIndicator(color: Color(0xFF70F4AD)),
       );
     }
 
@@ -415,17 +333,11 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
     }
 
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: 365,
-          child: _feedPanel(),
-        ),
+        SizedBox(width: 365, child: _feedPanel()),
         const SizedBox(width: 14),
-        Expanded(
-          child: _detailPanel(),
-        ),
+        Expanded(child: _detailPanel()),
       ],
     );
   }
@@ -434,25 +346,19 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF05100C),
-        borderRadius:
-            BorderRadius.circular(18),
-        border: Border.all(
-          color:
-              const Color(0xFF163C2D),
-        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF163C2D)),
       ),
       child: Column(
         children: [
           Padding(
-            padding:
-                const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 const Icon(
                   Icons.bolt_rounded,
                   size: 18,
-                  color:
-                      Color(0xFF70F4AD),
+                  color: Color(0xFF70F4AD),
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -460,16 +366,14 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
-                    fontWeight:
-                        FontWeight.w900,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '${_feed.length} bildirim',
                   style: const TextStyle(
-                    color:
-                        Color(0xFF71857D),
+                    color: Color(0xFF71857D),
                     fontSize: 10,
                   ),
                 ),
@@ -477,26 +381,17 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
             ),
           ),
 
-          const Divider(
-            height: 1,
-            color: Color(0xFF143027),
-          ),
+          const Divider(height: 1, color: Color(0xFF143027)),
 
           Expanded(
             child: ListView.separated(
-              padding:
-                  const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               itemCount: _feed.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: 8),
-              itemBuilder:
-                  (context, index) {
-                final item =
-                    _feed[index];
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final item = _feed[index];
 
-                return _feedCard(
-                  item,
-                );
+                return _feedCard(item);
               },
             ),
           ),
@@ -505,59 +400,30 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
     );
   }
 
-  Widget _feedCard(
-    Map<String, dynamic> item,
-  ) {
-    final index =
-        _text(item['disclosureIndex']);
+  Widget _feedCard(Map<String, dynamic> item) {
+    final index = _text(item['disclosureIndex']);
 
-    final selected =
-        _text(
-          _selectedFeedItem?[
-              'disclosureIndex'],
-        ) ==
-        index;
+    final selected = _text(_selectedFeedItem?['disclosureIndex']) == index;
 
-    final title =
-        _text(
-          item['title'],
-          'KAP Bildirimi',
-        );
+    final title = _text(item['title'], 'KAP Bildirimi');
 
-    final event =
-        _feedEventLabel(item);
+    final event = _feedEventLabel(item);
 
     return InkWell(
-      borderRadius:
-          BorderRadius.circular(13),
-      onTap: () =>
-          _selectDisclosure(item),
+      borderRadius: BorderRadius.circular(13),
+      onTap: () => _selectDisclosure(item),
       child: AnimatedContainer(
-        duration:
-            const Duration(
-          milliseconds: 150,
-        ),
-        padding:
-            const EdgeInsets.all(13),
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(
-          color: selected
-              ? const Color(0xFF0C2419)
-              : const Color(0xFF08150F),
-          borderRadius:
-              BorderRadius.circular(13),
+          color: selected ? const Color(0xFF0C2419) : const Color(0xFF08150F),
+          borderRadius: BorderRadius.circular(13),
           border: Border.all(
-            color: selected
-                ? const Color(
-                    0xFF38B879,
-                  )
-                : const Color(
-                    0xFF173529,
-                  ),
+            color: selected ? const Color(0xFF38B879) : const Color(0xFF173529),
           ),
         ),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -565,14 +431,10 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
                   child: Text(
                     title,
                     maxLines: 2,
-                    overflow:
-                        TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(
-                      color:
-                          Colors.white,
-                      fontWeight:
-                          FontWeight.w800,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
                       fontSize: 12,
                     ),
                   ),
@@ -582,12 +444,8 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
                   Icons.chevron_right,
                   size: 19,
                   color: selected
-                      ? const Color(
-                          0xFF70F4AD,
-                        )
-                      : const Color(
-                          0xFF53675F,
-                        ),
+                      ? const Color(0xFF70F4AD)
+                      : const Color(0xFF53675F),
                 ),
               ],
             ),
@@ -598,12 +456,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
                 const Spacer(),
                 Text(
                   '#$index',
-                  style:
-                      const TextStyle(
-                    color:
-                        Color(0xFF62766E),
-                    fontSize: 9,
-                  ),
+                  style: const TextStyle(color: Color(0xFF62766E), fontSize: 9),
                 ),
               ],
             ),
@@ -618,10 +471,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
       return Container(
         decoration: _panelDecoration(),
         child: const Center(
-          child:
-              CircularProgressIndicator(
-            color: Color(0xFF70F4AD),
-          ),
+          child: CircularProgressIndicator(color: Color(0xFF70F4AD)),
         ),
       );
     }
@@ -632,82 +482,44 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
         child: const Center(
           child: Text(
             'Bir KAP bildirimi seç.',
-            style: TextStyle(
-              color: Color(0xFF83988F),
-            ),
+            style: TextStyle(color: Color(0xFF83988F)),
           ),
         ),
       );
     }
 
-    final data =
-        _selectedDetail!;
+    final data = _selectedDetail!;
 
-    final impact =
-        data['impact'] is Map
-            ? Map<String, dynamic>.from(
-                data['impact'],
-              )
-            : <String, dynamic>{};
+    final impact = data['impact'] is Map
+        ? Map<String, dynamic>.from(data['impact'])
+        : <String, dynamic>{};
 
-    final moneyImpact =
-        impact['moneyImpact'] is Map
-            ? Map<String, dynamic>.from(
-                impact['moneyImpact'],
-              )
-            : <String, dynamic>{};
+    final moneyImpact = impact['moneyImpact'] is Map
+        ? Map<String, dynamic>.from(impact['moneyImpact'])
+        : <String, dynamic>{};
 
-    final score =
-        _intValue(impact['score']);
+    final score = _intValue(impact['score']);
 
-    final sentiment =
-        _text(
-          impact['sentiment'],
-          'NÖTR',
-        );
+    final sentiment = _text(impact['sentiment'], 'NÖTR');
 
-    final importance =
-        _text(
-          impact['importance'],
-          '-',
-        );
+    final importance = _text(impact['importance'], '-');
 
-    final eventTypes =
-        impact['eventTypes'] is List
-            ? (impact['eventTypes']
-                    as List)
-                .map(
-                  (e) =>
-                      e.toString(),
-                )
-                .toList()
-            : <String>[];
+    final eventTypes = impact['eventTypes'] is List
+        ? (impact['eventTypes'] as List).map((e) => e.toString()).toList()
+        : <String>[];
 
-    final reasons =
-        impact['reasons'] is List
-            ? (impact['reasons']
-                    as List)
-                .map(
-                  (e) =>
-                      e.toString(),
-                )
-                .toList()
-            : <String>[];
+    final reasons = impact['reasons'] is List
+        ? (impact['reasons'] as List).map((e) => e.toString()).toList()
+        : <String>[];
 
     return Container(
       decoration: _panelDecoration(),
       child: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(22),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _companyHeader(
-              data,
-              sentiment,
-              importance,
-            ),
+            _companyHeader(data, sentiment, importance),
 
             const SizedBox(height: 22),
 
@@ -715,38 +527,26 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: eventTypes
-                    .map(_eventBadge)
-                    .toList(),
+                children: eventTypes.map(_eventBadge).toList(),
               ),
 
             const SizedBox(height: 20),
 
             Text(
-              _text(
-                data['subject'],
-                'KAP Bildirimi',
-              ),
-              style:
-                  const TextStyle(
+              _text(data['subject'], 'KAP Bildirimi'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 22,
-                fontWeight:
-                    FontWeight.w900,
+                fontWeight: FontWeight.w900,
               ),
             ),
 
             const SizedBox(height: 9),
 
             Text(
-              _text(
-                data['summary'],
-                '-',
-              ),
-              style:
-                  const TextStyle(
-                color:
-                    Color(0xFFADBEB7),
+              _text(data['summary'], '-'),
+              style: const TextStyle(
+                color: Color(0xFFADBEB7),
                 fontSize: 13,
                 height: 1.5,
               ),
@@ -754,50 +554,32 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
 
             const SizedBox(height: 27),
 
-            _scoreBlock(
-              score,
-            ),
+            _scoreBlock(score),
 
             if (reasons.isNotEmpty) ...[
               const SizedBox(height: 25),
-              _sectionTitle(
-                'CROC OKUMASI',
-              ),
+              _sectionTitle('CROC OKUMASI'),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: reasons
-                    .map(_reasonChip)
-                    .toList(),
+                children: reasons.map(_reasonChip).toList(),
               ),
             ],
 
-            if (moneyImpact[
-                    'detected'] ==
-                true) ...[
+            if (moneyImpact['detected'] == true) ...[
               const SizedBox(height: 25),
-              _moneyBlock(
-                moneyImpact,
-              ),
+              _moneyBlock(moneyImpact),
             ],
 
-            if (_selectedProfile !=
-                null) ...[
+            if (_selectedProfile != null) ...[
               const SizedBox(height: 25),
-              _profileBlock(
-                _selectedProfile!,
-              ),
+              _profileBlock(_selectedProfile!),
             ],
 
             const SizedBox(height: 20),
 
-            _crocComment(
-              data,
-              score,
-              sentiment,
-              moneyImpact,
-            ),
+            _crocComment(data, score, sentiment, moneyImpact),
           ],
         ),
       ),
@@ -805,261 +587,172 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
   }
 
   Widget _companyHeader(
-  Map<String, dynamic> data,
-  String sentiment,
-  String importance,
-) {
-  final symbol = _text(
-    data['symbol'],
-    '-',
-  );
+    Map<String, dynamic> data,
+    String sentiment,
+    String importance,
+  ) {
+    final symbol = _text(data['symbol'], '-');
 
-  return SizedBox(
-    width: double.infinity,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 9,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFF70F4AD),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Text(
-                symbol,
-                style: const TextStyle(
-                  color: Color(0xFF03110A),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF70F4AD),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Text(
+                  symbol,
+                  style: const TextStyle(
+                    color: Color(0xFF03110A),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(width: 13),
+              const SizedBox(width: 13),
 
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _text(
-                      data['senderTitle'],
-                      '-',
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _text(data['senderTitle'], '-'),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        height: 1.15,
+                      ),
                     ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      height: 1.15,
-                    ),
-                  ),
 
-                  const SizedBox(height: 6),
+                    const SizedBox(height: 6),
 
-                  Text(
-                    _text(
-                      data['time'],
-                      '-',
+                    Text(
+                      _text(data['time'], '-'),
+                      style: const TextStyle(
+                        color: Color(0xFF7E9189),
+                        fontSize: 11,
+                      ),
                     ),
-                    style: const TextStyle(
-                      color: Color(0xFF7E9189),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
 
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _statusBadge(
-              sentiment,
-              _sentimentColor(sentiment),
-            ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _statusBadge(sentiment, _sentimentColor(sentiment)),
 
-            _statusBadge(
-              'ÖNEM: $importance',
-              const Color(0xFF6C8077),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
+              _statusBadge('ÖNEM: $importance', const Color(0xFF6C8077)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _scoreBlock(int score) {
     return Column(
       children: [
         Row(
           children: [
-            _sectionTitle(
-              'CROC ETKİ SKORU',
-            ),
+            _sectionTitle('CROC ETKİ SKORU'),
             const Spacer(),
             Text(
               '$score / 100',
-              style:
-                  TextStyle(
-                color:
-                    _scoreColor(score),
+              style: TextStyle(
+                color: _scoreColor(score),
                 fontSize: 25,
-                fontWeight:
-                    FontWeight.w900,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
         ),
         const SizedBox(height: 11),
         ClipRRect(
-          borderRadius:
-              BorderRadius.circular(20),
-          child:
-              LinearProgressIndicator(
-            value:
-                score.clamp(0, 100) /
-                    100,
+          borderRadius: BorderRadius.circular(20),
+          child: LinearProgressIndicator(
+            value: score.clamp(0, 100) / 100,
             minHeight: 11,
-            backgroundColor:
-                const Color(
-              0xFF12241C,
-            ),
-            valueColor:
-                AlwaysStoppedAnimation<
-                    Color>(
-              _scoreColor(score),
-            ),
+            backgroundColor: const Color(0xFF12241C),
+            valueColor: AlwaysStoppedAnimation<Color>(_scoreColor(score)),
           ),
         ),
       ],
     );
   }
 
-  Widget _moneyBlock(
-    Map<String, dynamic> moneyImpact,
-  ) {
-    final strongest =
-        moneyImpact[
-                'strongestTryAmount']
-            is Map
-        ? Map<String, dynamic>.from(
-            moneyImpact[
-                'strongestTryAmount'],
-          )
+  Widget _moneyBlock(Map<String, dynamic> moneyImpact) {
+    final strongest = moneyImpact['strongestTryAmount'] is Map
+        ? Map<String, dynamic>.from(moneyImpact['strongestTryAmount'])
         : <String, dynamic>{};
 
-    final value =
-        _numberValue(
-      strongest['value'],
-    );
+    final value = _numberValue(strongest['value']);
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle(
-          'PARASAL ETKİ',
-        ),
+        _sectionTitle('PARASAL ETKİ'),
         const SizedBox(height: 10),
         Wrap(
           spacing: 10,
           runSpacing: 10,
           children: [
-            _infoCard(
-              'TUTAR',
-              _money(value),
-            ),
-            _infoCard(
-              'SEVİYE',
-              _text(
-                moneyImpact['level'],
-                '-',
-              ),
-            ),
-            _infoCard(
-              'SKOR KATKISI',
-              '+${_intValue(moneyImpact['bonus'])}',
-            ),
+            _infoCard('TUTAR', _money(value)),
+            _infoCard('SEVİYE', _text(moneyImpact['level'], '-')),
+            _infoCard('SKOR KATKISI', '+${_intValue(moneyImpact['bonus'])}'),
           ],
         ),
       ],
     );
   }
 
-  Widget _profileBlock(
-    Map<String, dynamic> profile,
-  ) {
+  Widget _profileBlock(Map<String, dynamic> profile) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle(
-          'ŞİRKET BAĞLAMI',
-        ),
+        _sectionTitle('ŞİRKET BAĞLAMI'),
         const SizedBox(height: 10),
         Wrap(
           spacing: 10,
           runSpacing: 10,
           children: [
-            _infoCard(
-              'SEKTÖR',
-              _text(
-                profile['sector'],
-                '-',
-              ),
-              width: 270,
-            ),
-            _infoCard(
-              'PAZAR',
-              _text(
-                profile['market'],
-                '-',
-              ),
-            ),
+            _infoCard('SEKTÖR', _text(profile['sector'], '-'), width: 270),
+            _infoCard('PAZAR', _text(profile['market'], '-')),
             _infoCard(
               'SERMAYE',
-              _money(
-                _numberValue(
-                  profile[
-                      'paidInCapital'],
-                ),
-              ),
+              _money(_numberValue(profile['paidInCapital'])),
             ),
             _infoCard(
               'ANA ORTAK',
-              _text(
-                profile[
-                    'mainShareholder'],
-                '-',
-              ),
+              _text(profile['mainShareholder'], '-'),
               width: 250,
             ),
             _infoCard(
               'ORTAK PAYI',
-              profile[
-                          'mainShareholderRatio'] ==
-                      null
+              profile['mainShareholderRatio'] == null
                   ? '-'
                   : '%${_numberValue(profile['mainShareholderRatio'])?.toStringAsFixed(2)}',
             ),
-            _infoCard(
-              'ENDEKS',
-              _indexText(profile),
-            ),
+            _infoCard('ENDEKS', _indexText(profile)),
           ],
         ),
       ],
@@ -1072,26 +765,18 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
     String sentiment,
     Map<String, dynamic> moneyImpact,
   ) {
-    final subject = _text(
-      data['subject'],
-      'KAP Bildirimi',
-    );
+    final subject = _text(data['subject'], 'KAP Bildirimi');
 
     final eventTypes =
-        data['impact'] is Map &&
-                (data['impact'] as Map)['eventTypes'] is List
-            ? ((data['impact'] as Map)['eventTypes'] as List)
-                .map((e) => e.toString())
-                .toList()
-            : <String>[];
+        data['impact'] is Map && (data['impact'] as Map)['eventTypes'] is List
+        ? ((data['impact'] as Map)['eventTypes'] as List)
+              .map((e) => e.toString())
+              .toList()
+        : <String>[];
 
-    final moneyDetected =
-        moneyImpact['detected'] == true;
+    final moneyDetected = moneyImpact['detected'] == true;
 
-    final moneyLevel = _text(
-      moneyImpact['level'],
-      'YOK',
-    );
+    final moneyLevel = _text(moneyImpact['level'], 'YOK');
 
     String decision;
     String explanation;
@@ -1123,9 +808,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
           'Haber tek başına işlem kararı üretmek için yeterli görülmüyor.';
     }
 
-    final eventText = eventTypes.isEmpty
-        ? subject
-        : eventTypes.join(' • ');
+    final eventText = eventTypes.isEmpty ? subject : eventTypes.join(' • ');
 
     return Container(
       width: double.infinity,
@@ -1133,20 +816,14 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF092017),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFF216044),
-        ),
+        border: Border.all(color: const Color(0xFF216044)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.auto_awesome,
-                color: Color(0xFF70F4AD),
-                size: 21,
-              ),
+              Icon(Icons.auto_awesome, color: Color(0xFF70F4AD), size: 21),
               SizedBox(width: 9),
               Text(
                 'CROC AI YORUMU',
@@ -1184,8 +861,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
               _miniBadge('SKOR $score/100'),
               _miniBadge(sentiment),
               _miniBadge(eventText),
-              if (moneyDetected)
-                _miniBadge('PARASAL ETKİ: $moneyLevel'),
+              if (moneyDetected) _miniBadge('PARASAL ETKİ: $moneyLevel'),
             ],
           ),
           const SizedBox(height: 13),
@@ -1195,9 +871,7 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF07140F),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: const Color(0xFF1B3A2E),
-              ),
+              border: Border.all(color: const Color(0xFF1B3A2E)),
             ),
             child: Text(
               '⚠ $warning',
@@ -1213,54 +887,34 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
     );
   }
 
-  Widget _infoCard(
-    String title,
-    String value, {
-    double width = 175,
-  }) {
+  Widget _infoCard(String title, String value, {double width = 175}) {
     return Container(
       width: width,
-      constraints:
-          const BoxConstraints(
-        minHeight: 72,
-      ),
-      padding:
-          const EdgeInsets.all(12),
+      constraints: const BoxConstraints(minHeight: 72),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color:
-            const Color(0xFF091711),
-        borderRadius:
-            BorderRadius.circular(11),
-        border: Border.all(
-          color:
-              const Color(0xFF1B3A2E),
-        ),
+        color: const Color(0xFF091711),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: const Color(0xFF1B3A2E)),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style:
-                const TextStyle(
-              color:
-                  Color(0xFF70837B),
+            style: const TextStyle(
+              color: Color(0xFF70837B),
               fontSize: 9,
-              fontWeight:
-                  FontWeight.w800,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 7),
           Text(
             value,
-            style:
-                const TextStyle(
-              color:
-                  Color(0xFFD2DDD8),
+            style: const TextStyle(
+              color: Color(0xFFD2DDD8),
               fontSize: 11,
-              fontWeight:
-                  FontWeight.w700,
+              fontWeight: FontWeight.w700,
               height: 1.25,
             ),
           ),
@@ -1269,18 +923,13 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
     );
   }
 
-  Widget _sectionTitle(
-    String text,
-  ) {
+  Widget _sectionTitle(String text) {
     return Text(
       text,
-      style:
-          const TextStyle(
-        color:
-            Color(0xFF90A39B),
+      style: const TextStyle(
+        color: Color(0xFF90A39B),
         fontSize: 10,
-        fontWeight:
-            FontWeight.w900,
+        fontWeight: FontWeight.w900,
         letterSpacing: 0.7,
       ),
     );
@@ -1288,97 +937,59 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
 
   Widget _reasonChip(String text) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color:
-            const Color(0xFF0A1A14),
-        borderRadius:
-            BorderRadius.circular(9),
-        border: Border.all(
-          color:
-              const Color(0xFF244438),
-        ),
+        color: const Color(0xFF0A1A14),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: const Color(0xFF244438)),
       ),
       child: Text(
         text,
-        style:
-            const TextStyle(
-          color:
-              Color(0xFFC3D0CB),
+        style: const TextStyle(
+          color: Color(0xFFC3D0CB),
           fontSize: 10,
-          fontWeight:
-              FontWeight.w700,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 
   Widget _eventBadge(String text) {
-    return _statusBadge(
-      text,
-      const Color(0xFF38B879),
-    );
+    return _statusBadge(text, const Color(0xFF38B879));
   }
 
   Widget _miniBadge(String text) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 7,
-        vertical: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color:
-            const Color(0xFF0A2118),
-        borderRadius:
-            BorderRadius.circular(8),
+        color: const Color(0xFF0A2118),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         text,
-        style:
-            const TextStyle(
-          color:
-              Color(0xFF6FC99C),
+        style: const TextStyle(
+          color: Color(0xFF6FC99C),
           fontSize: 8,
-          fontWeight:
-              FontWeight.w800,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
 
-  Widget _statusBadge(
-    String text,
-    Color color,
-  ) {
+  Widget _statusBadge(String text, Color color) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
-        color:
-            color.withOpacity(0.12),
-        borderRadius:
-            BorderRadius.circular(20),
-        border: Border.all(
-          color:
-              color.withOpacity(0.55),
-        ),
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.55)),
       ),
       child: Text(
         text,
-        style:
-            TextStyle(
+        style: TextStyle(
           color: color,
           fontSize: 10,
-          fontWeight:
-              FontWeight.w900,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );
@@ -1386,46 +997,29 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
 
   BoxDecoration _panelDecoration() {
     return BoxDecoration(
-      color:
-          const Color(0xFF05100C),
-      borderRadius:
-          BorderRadius.circular(18),
-      border: Border.all(
-        color:
-            const Color(0xFF163C2D),
-      ),
+      color: const Color(0xFF05100C),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFF163C2D)),
     );
   }
 
   Widget _emptyState() {
     return Center(
       child: Text(
-        _error ??
-            'Uygun KAP bildirimi bulunamadı.',
-        style:
-            const TextStyle(
-          color:
-              Color(0xFF8DA098),
-        ),
+        _error ?? 'Uygun KAP bildirimi bulunamadı.',
+        style: const TextStyle(color: Color(0xFF8DA098)),
       ),
     );
   }
 
-  String _feedEventLabel(
-    Map<String, dynamic> item,
-  ) {
-    final reports =
-        item['subReportIds'] is List
-            ? item['subReportIds']
-                as List
-            : <dynamic>[];
+  String _feedEventLabel(Map<String, dynamic> item) {
+    final reports = item['subReportIds'] is List
+        ? item['subReportIds'] as List
+        : <dynamic>[];
 
-    final text =
-        reports.join(' ').toLowerCase();
+    final text = reports.join(' ').toLowerCase();
 
-    if (text.contains(
-      'new-business-relation',
-    )) {
+    if (text.contains('new-business-relation')) {
       return 'YENİ İŞ';
     }
 
@@ -1441,56 +1035,36 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
       return 'SERMAYE';
     }
 
-    return _text(
-      item['disclosureType'],
-      'KAP',
-    );
+    return _text(item['disclosureType'], 'KAP');
   }
 
-  Color _sentimentColor(
-    String sentiment,
-  ) {
-    final value =
-        sentiment.toUpperCase();
+  Color _sentimentColor(String sentiment) {
+    final value = sentiment.toUpperCase();
 
     if (value.contains('NEGATİF')) {
-      return const Color(
-        0xFFFF7777,
-      );
+      return const Color(0xFFFF7777);
     }
 
     if (value.contains('POZİTİF')) {
-      return const Color(
-        0xFF70F4AD,
-      );
+      return const Color(0xFF70F4AD);
     }
 
-    return const Color(
-      0xFFFFC857,
-    );
+    return const Color(0xFFFFC857);
   }
 
   Color _scoreColor(int score) {
     if (score >= 65) {
-      return const Color(
-        0xFF70F4AD,
-      );
+      return const Color(0xFF70F4AD);
     }
 
     if (score <= 35) {
-      return const Color(
-        0xFFFF7777,
-      );
+      return const Color(0xFFFF7777);
     }
 
-    return const Color(
-      0xFFFFC857,
-    );
+    return const Color(0xFFFFC857);
   }
 
-  String _indexText(
-    Map<String, dynamic> profile,
-  ) {
+  String _indexText(Map<String, dynamic> profile) {
     if (profile['bist30'] == true) {
       return 'BIST 30';
     }
@@ -1506,16 +1080,10 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
     return 'ANA ENDEKS YOK';
   }
 
-  String _text(
-    dynamic value, [
-    String fallback = '',
-  ]) {
-    final text =
-        value?.toString().trim() ?? '';
+  String _text(dynamic value, [String fallback = '']) {
+    final text = value?.toString().trim() ?? '';
 
-    return text.isEmpty
-        ? fallback
-        : text;
+    return text.isEmpty ? fallback : text;
   }
 
   int _intValue(dynamic value) {
@@ -1527,22 +1095,15 @@ class _KapRadarScreenState extends State<KapRadarScreen> {
       return value.round();
     }
 
-    return int.tryParse(
-          value?.toString() ?? '',
-        ) ??
-        0;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  double? _numberValue(
-    dynamic value,
-  ) {
+  double? _numberValue(dynamic value) {
     if (value is num) {
       return value.toDouble();
     }
 
-    return double.tryParse(
-      value?.toString() ?? '',
-    );
+    return double.tryParse(value?.toString() ?? '');
   }
 
   String _money(double? value) {

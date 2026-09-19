@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/funds/data_sources/tefas_fund_data_source.dart';
 import '../../core/funds/engines/fund_metrics_engine.dart';
+import '../../core/funds/models/fund_flow_result.dart';
 import '../../core/funds/models/fund_history_result.dart';
 import '../../core/funds/models/fund_metrics_result.dart';
+import 'widgets/fund_finder_sheet.dart';
 
 class FundsScreen extends StatefulWidget {
   const FundsScreen({super.key});
@@ -20,6 +22,9 @@ class _FundsScreenState extends State<FundsScreen> {
   final FundMetricsEngine _metricsEngine = const FundMetricsEngine();
 
   FundHistoryResult? _history;
+  FundFlowResult? _flow;
+  int _flowPeriodMonths = 1;
+  bool _flowLoading = false;
   FundMetricsResult? _metrics;
   bool _loading = false;
   bool _searching = false;
@@ -91,7 +96,6 @@ class _FundsScreenState extends State<FundsScreen> {
 
     _searchDebounce?.cancel();
     _searchGeneration++;
-    FocusScope.of(context).unfocus();
     setState(() {
       _loading = true;
       _searching = false;
@@ -99,15 +103,45 @@ class _FundsScreenState extends State<FundsScreen> {
       _error = null;
     });
 
-    final history = await _dataSource.fetchHistory(code, periodMonths: 12);
+    final historyFuture = _dataSource.fetchHistory(code, periodMonths: 12);
+    final flowFuture = _dataSource.fetchFlow(
+      code,
+      periodMonths: _flowPeriodMonths,
+    );
+
+    final history = await historyFuture;
+    final flow = await flowFuture;
     final metrics = _metricsEngine.calculate(history);
 
     if (!mounted) return;
     setState(() {
       _history = history;
+      _flow = flow;
       _metrics = metrics;
       _loading = false;
+      _flowLoading = false;
       _error = history.available ? null : history.status;
+    });
+  }
+
+  Future<void> _changeFlowPeriod(int months) async {
+    if (_flowLoading || months == _flowPeriodMonths) return;
+
+    final code = _controller.text.trim().toUpperCase();
+    if (code.isEmpty) return;
+
+    setState(() {
+      _flowPeriodMonths = months;
+      _flowLoading = true;
+    });
+
+    final flow = await _dataSource.fetchFlow(code, periodMonths: months);
+
+    if (!mounted) return;
+
+    setState(() {
+      _flow = flow;
+      _flowLoading = false;
     });
   }
 
@@ -138,6 +172,8 @@ class _FundsScreenState extends State<FundsScreen> {
                 style: TextStyle(color: Color(0xFF91A69D), fontSize: 13),
               ),
               const SizedBox(height: 18),
+              _beginnerFinderCard(),
+              const SizedBox(height: 18),
               _searchBar(),
               const SizedBox(height: 18),
               if (_loading) const LinearProgressIndicator(minHeight: 2),
@@ -147,6 +183,8 @@ class _FundsScreenState extends State<FundsScreen> {
                 _fundHeader(history),
                 const SizedBox(height: 14),
                 _beginnerSummary(metrics),
+                const SizedBox(height: 14),
+                _fundFlowCard(),
                 const SizedBox(height: 14),
                 _performanceGrid(metrics),
                 const SizedBox(height: 14),
@@ -161,6 +199,88 @@ class _FundsScreenState extends State<FundsScreen> {
     );
   }
 
+  Widget _beginnerFinderCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF07130F),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF1E5C43)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 720;
+          final text = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'Fondan anlamıyorum',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Vade, risk ve hedefini söyle. CROC gerçek TEFAS verileriyle sana uygun adayları daraltsın.',
+                style: TextStyle(
+                  color: Color(0xFF91A69D),
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          );
+
+          final button = FilledButton.icon(
+            onPressed: () {
+              showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (sheetContext) {
+                  return FractionallySizedBox(
+                    heightFactor: 0.92,
+                    child: FundFinderSheet(
+                      dataSource: _dataSource,
+                      onSelected: _selectSuggestion,
+                    ),
+                  );
+                },
+              );
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF1D7A50),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            ),
+            icon: const Icon(Icons.auto_awesome_rounded),
+            label: const Text(
+              'CROC bana fon bulsun',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [text, const SizedBox(height: 14), button],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: text),
+              const SizedBox(width: 20),
+              button,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Widget _searchBar() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -168,7 +288,10 @@ class _FundsScreenState extends State<FundsScreen> {
         final field = TextField(
           controller: _controller,
           textCapitalization: TextCapitalization.characters,
-          onSubmitted: _loadFund,
+          onSubmitted: (value) {
+            FocusScope.of(context).unfocus();
+            _loadFund(value);
+          },
           onChanged: _onSearchChanged,
           style: const TextStyle(
             color: Colors.white,
@@ -215,7 +338,12 @@ class _FundsScreenState extends State<FundsScreen> {
         );
 
         final button = FilledButton(
-          onPressed: _loading ? null : () => _loadFund(),
+          onPressed: _loading
+              ? null
+              : () {
+                  FocusScope.of(context).unfocus();
+                  _loadFund();
+                },
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFF1D7A50),
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 19),
@@ -359,7 +487,10 @@ class _FundsScreenState extends State<FundsScreen> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF123A2A),
                   borderRadius: BorderRadius.circular(10),
@@ -476,6 +607,213 @@ class _FundsScreenState extends State<FundsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _fundFlowCard() {
+    final flow = _flow;
+
+    String periodLabel(int months) {
+      return switch (months) {
+        3 => '3A',
+        6 => '6A',
+        12 => '1Y',
+        _ => '1A',
+      };
+    }
+
+    Widget periodButton(int months) {
+      final selected = _flowPeriodMonths == months;
+
+      return InkWell(
+        onTap: _flowLoading ? null : () => _changeFlowPeriod(months),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFF1D7A50) : const Color(0xFF0A2118),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF70F4AD)
+                  : const Color(0xFF1E5C43),
+            ),
+          ),
+          child: Text(
+            periodLabel(months),
+            style: TextStyle(
+              color: selected ? Colors.white : const Color(0xFF91A69D),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (flow == null) {
+      return _card(
+        child: const Text(
+          'Fon akışı yükleniyor...',
+          style: TextStyle(color: Color(0xFF91A69D)),
+        ),
+      );
+    }
+
+    if (!flow.available || flow.metrics == null) {
+      return _card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Fon Akışı',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              flow.status,
+              style: const TextStyle(
+                color: Color(0xFFFFC66D),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final metrics = flow.metrics!;
+    final netFlow = metrics.estimatedNetFlow;
+
+    final positive = (netFlow ?? 0) >= 0;
+
+    final tone = positive ? const Color(0xFF70F4AD) : const Color(0xFFFF6673);
+
+    return _card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Fon Akışı',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (_flowLoading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              periodButton(1),
+              periodButton(3),
+              periodButton(6),
+              periodButton(12),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                _flowDirectionLabel(metrics.flowDirection),
+                style: TextStyle(
+                  color: tone,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                '${metrics.flowScore}/100',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _metricRow('Tahmini net para akışı', _moneyFlow(netFlow)),
+          _metricRow('Akış oranı', _percentSigned(metrics.estimatedNetFlowPct)),
+          _metricRow(
+            'Yatırımcı değişimi',
+            _percentSigned(metrics.investorChangePct),
+          ),
+          _metricRow(
+            'Portföy büyüklüğü değişimi',
+            _percentSigned(metrics.portfolioChangePct),
+          ),
+          _metricRow(
+            'Fon fiyat getirisi',
+            _percentSigned(metrics.priceReturnPct),
+          ),
+          if (flow.start != null && flow.end != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              '${_date(flow.start!.date)} → ${_date(flow.end!.date)}',
+              style: const TextStyle(
+                color: Color(0xFF668077),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          const Text(
+            'Tahmini net akış, portföy büyüklüğündeki değişimden fon fiyat hareketinin etkisi ayrıştırılarak hesaplanır. Hisse Master Decision skoruna bağlı değildir.',
+            style: TextStyle(
+              color: Color(0xFF7F958C),
+              fontSize: 10,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _flowDirectionLabel(String value) {
+    return switch (value) {
+      'GUCLU GIRIS' => 'GÜÇLÜ GİRİŞ',
+      'GIRIS' => 'GİRİŞ',
+      'NOTR' => 'NÖTR',
+      'CIKIS' => 'ÇIKIŞ',
+      'GUCLU CIKIS' => 'GÜÇLÜ ÇIKIŞ',
+      _ => 'VERİ YETERSİZ',
+    };
+  }
+
+  String _moneyFlow(double? value) {
+    if (value == null) return 'VERİ YOK';
+
+    final absValue = value.abs();
+
+    if (absValue >= 1000000000) {
+      return '${value >= 0 ? '+' : '-'}'
+          '${(absValue / 1000000000).toStringAsFixed(2)} Mr TL';
+    }
+
+    return '${value >= 0 ? '+' : '-'}'
+        '${(absValue / 1000000).toStringAsFixed(1)} Mn TL';
   }
 
   Widget _performanceGrid(FundMetricsResult metrics) {

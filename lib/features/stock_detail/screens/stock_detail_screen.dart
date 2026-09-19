@@ -4,17 +4,24 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/bist/database/bist_index_membership.dart';
+
 import '../../../core/data_foundation/market/market_tick.dart';
 import '../../../core/data_foundation/market/historical_candle.dart';
 import '../../../core/data_foundation/market/yahoo_bist_market_data_source.dart';
 import '../../../core/analysis/croc_technical_analysis.dart';
 import '../../../core/master_engine/croc_master_stock_engine.dart';
 import '../../../core/trade/croc_scale_in_engine.dart';
+import '../../../core/trade/croc_entry_timing_engine.dart';
 import '../../../core/kap_intelligence/kap_intelligence_service.dart';
+import '../../../core/funds/data_sources/stock_fund_radar_data_source.dart';
+import '../../../core/funds/models/stock_fund_radar_result.dart';
 import '../../../shared/glossary/interactive_glossary_text.dart';
 
 import '../widgets/croc_position_card.dart';
 import '../widgets/croc_scale_in_plan_card.dart';
+import '../widgets/croc_quick_view_card.dart';
+import '../widgets/croc_fund_radar_card.dart';
 
 class StockDetailScreen extends StatefulWidget {
   final String code;
@@ -51,7 +58,10 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   String? _liveError;
   CrocTechnicalAnalysis? _analysis;
   CrocMasterStockResult? _masterResult;
+  CrocEntryTimingResult? _entryTimingResult;
   KapIntelligenceResult _kapResult = KapIntelligenceResult.empty;
+  StockFundRadarResult? _fundRadarResult;
+  bool _fundRadarLoading = true;
 
   HistoricalCandle? _hoveredCandle;
   Offset? _hoverPosition;
@@ -165,6 +175,37 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   void initState() {
     super.initState();
     _loadLiveQuote();
+    _loadFundRadar();
+  }
+
+  Future<void> _loadFundRadar() async {
+    if (mounted) {
+      setState(() {
+        _fundRadarLoading = true;
+      });
+    }
+
+    try {
+      final result = await StockFundRadarDataSource().fetch(widget.code);
+
+      if (!mounted) return;
+
+      setState(() {
+        _fundRadarResult = result;
+        _fundRadarLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _fundRadarResult = StockFundRadarResult.unavailable(
+          symbol: widget.code,
+          status: 'Fon Radarı verisi alınamadı.',
+        );
+
+        _fundRadarLoading = false;
+      });
+    }
   }
 
   String _rangeForPeriod(int index) {
@@ -257,6 +298,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
 
       CrocTechnicalAnalysis? calculatedAnalysis;
       CrocMasterStockResult? calculatedMasterResult;
+      CrocEntryTimingResult? calculatedEntryTiming;
 
       // -------------------------------------------------------
       // GERÇEK KAP INTELLIGENCE
@@ -278,6 +320,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
       if (analysisCandles.length >= 20) {
         calculatedAnalysis = const CrocTechnicalAnalysisEngine().analyze(
           analysisCandles,
+          currentPrice: tick.price,
         );
 
         calculatedMasterResult = CrocMasterStockEngine.evaluate(
@@ -295,6 +338,12 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           // Veri yoksa 0 gelir ve Master karara dahil etmez.
           newsScore: kapResult.hasData ? kapResult.score : 0,
         );
+
+        calculatedEntryTiming = CrocEntryTimingEngine.evaluate(
+          lastPrice: tick.price,
+          technical: calculatedAnalysis,
+          master: calculatedMasterResult,
+        );
       }
 
       if (!mounted) return;
@@ -311,6 +360,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
         // AI ise uzun tarihçeden hesaplanır.
         _analysis = calculatedAnalysis;
         _masterResult = calculatedMasterResult;
+        _entryTimingResult = calculatedEntryTiming;
         _kapResult = kapResult;
 
         _liveLoading = false;
@@ -556,8 +606,14 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                         ],
                         const SizedBox(height: 10),
 
-                        // CROC Ã¶nce sonucu sÃ¶yler.
+                        // CROC önce sonucu söyler.
                         _buildCrocDecisionHero(mobile),
+                        CrocQuickViewCard(
+                          price: _displayPrice,
+                          technical: _analysis,
+                          master: _masterResult,
+                          kap: _kapResult,
+                        ),
                         if (_analysis != null &&
                             _displayDecision.toUpperCase().contains('AL'))
                           CrocScaleInPlanCard(
@@ -574,10 +630,15 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                           target: _analysis?.target ?? 0,
                         ),
                         const SizedBox(height: 10),
+                        CrocFundRadarCard(
+                          result: _fundRadarResult,
+                          loading: _fundRadarLoading,
+                        ),
+
                         _buildPeriodBar(mobile || compactDesktop),
                         const SizedBox(height: 10),
 
-                        // Ana Ã§alÄ±ÅŸma alanÄ±: canlÄ± mumlar + gerÃ§ek hedef/stop.
+                        // Ana çalışma alanı: canlı mumlar + gerçek hedef/stop.
                         _buildMainChartAreaV2(mobile || compactDesktop),
 
                         const SizedBox(height: 14),
@@ -643,7 +704,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                                 subtitle: const Padding(
                                   padding: EdgeInsets.only(top: 4),
                                   child: Text(
-                                    'RSI • MACD • teknik gÃ¶stergeler • KAP • finansallar',
+                                    'RSI • MACD • teknik göstergeler • KAP • finansallar',
                                     style: TextStyle(
                                       color: Color(0xFF8FA79D),
                                       fontSize: 9.5,
@@ -706,6 +767,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                const SizedBox(width: 7),
+                _StockDetailBistIndexBadge(symbol: widget.code),
                 Text(
                   widget.company,
                   maxLines: 1,
@@ -1039,6 +1102,17 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
       );
     }
 
+    final normalizedDecision = decision.toUpperCase();
+
+    final String buyLabel;
+    if (normalizedDecision == 'GÜÇLÜ AL' || normalizedDecision == 'AL') {
+      buyLabel = 'ALIM';
+    } else if (normalizedDecision == 'İZLE' || normalizedDecision == 'BEKLE') {
+      buyLabel = 'İZLEME';
+    } else {
+      buyLabel = 'GİRİŞ YOK';
+    }
+
     final buyText = buyLow == null || buyHigh == null
         ? '\u2014'
         : buyLow.toStringAsFixed(2) == buyHigh.toStringAsFixed(2)
@@ -1136,6 +1210,89 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
               letterSpacing: -.8,
             ),
           ),
+
+          if (ready && _entryTimingResult != null) ...[
+            SizedBox(height: mobile ? 10 : 12),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: mobile ? 10 : 12,
+                vertical: mobile ? 9 : 10,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A1B15),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: const Color(0xFF274B3D)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.route_rounded,
+                    size: 17,
+                    color: Color(0xFFFFC857),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'GİRİŞ ZAMANLAMASI',
+                          style: TextStyle(
+                            color: Color(0xFF71877D),
+                            fontSize: 7.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: .8,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _entryTimingResult!.decision,
+                                style: TextStyle(
+                                  color: _entryTimingResult!.canEnterNow
+                                      ? const Color(0xFF70F4AD)
+                                      : _entryTimingResult!.trainMissed
+                                      ? const Color(0xFFFF6673)
+                                      : const Color(0xFFFFC857),
+                                  fontSize: mobile ? 13 : 14,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${_entryTimingResult!.score}/100',
+                              style: const TextStyle(
+                                color: Color(0xFFA8BAB2),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _entryTimingResult!.message,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFA4B5AD),
+                            fontSize: 9.5,
+                            height: 1.3,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (ready) ...[
             SizedBox(height: mobile ? 6 : 7),
             Text(
@@ -1155,7 +1312,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
             Row(
               children: [
                 mobileMetric(
-                  label: 'ALIM',
+                  label: buyLabel,
                   value: buyText,
                   color: const Color(0xFF70F4AD),
                   icon: Icons.shopping_cart_checkout_rounded,
@@ -1193,7 +1350,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
               runSpacing: 7,
               children: [
                 desktopMetric(
-                  label: 'ALIM',
+                  label: buyLabel,
                   value: buyText,
                   color: const Color(0xFF70F4AD),
                   icon: Icons.shopping_cart_checkout_rounded,
@@ -3158,7 +3315,7 @@ class _CrocAnalysisFlow extends StatelessWidget {
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'CROC ANALİZ AKIŞI',
+                  'CROC ANALİZ AKIŞII',
                   style: TextStyle(
                     color: Color(0xFF70F4AD),
                     fontSize: 10,
@@ -3339,6 +3496,52 @@ class _CrocAnalysisFlowRow extends StatelessWidget {
             size: 17,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StockDetailBistIndexBadge extends StatelessWidget {
+  final String symbol;
+
+  const _StockDetailBistIndexBadge({required this.symbol});
+
+  @override
+  Widget build(BuildContext context) {
+    final code = symbol.toUpperCase();
+
+    final String text;
+    final Color color;
+
+    if (BistIndexMembership.isBist30(code)) {
+      text = 'B30';
+      color = const Color(0xFFFFC857);
+    } else if (BistIndexMembership.isBist50(code)) {
+      text = 'B50';
+      color = const Color(0xFF55C7F3);
+    } else if (BistIndexMembership.isBist100(code)) {
+      text = 'B100';
+      color = const Color(0xFF70F4AD);
+    } else {
+      text = 'BIST';
+      color = const Color(0xFF71877D);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: color.withValues(alpha: .35)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 7,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .2,
+        ),
       ),
     );
   }

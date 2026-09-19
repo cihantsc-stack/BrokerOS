@@ -1,0 +1,12 @@
+﻿{
+  "name": "croc-data-gateway",
+  "main": "worker.js",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "kv_namespaces": [
+    {
+      "binding": "KAP_INDEX",
+      "id": "2ae88b51fbd64034bc7ce7224b397347"
+    }
+  ]
+}

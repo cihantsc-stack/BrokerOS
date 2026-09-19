@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/bist/database/bist_index_membership.dart';
+
 import '../../../core/bist/models/sector_strength.dart';
 import '../../stock_detail/screens/stock_detail_screen.dart';
+import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
 import '../services/daily_trade_scanner_service.dart';
 import '../services/market_master_decision_service.dart';
@@ -161,6 +164,11 @@ class _DailyTradeCommandCenterState extends State<DailyTradeCommandCenter> {
         final loading = snapshot.connectionState == ConnectionState.waiting;
         final candidates = snapshot.data ?? const <DailyTradeCandidate>[];
         final topThree = candidates.take(3).toList();
+        final crazyMoneyCandidates = DailyTradeScannerService
+            .instance
+            .latestCrazyMoneyCandidates
+            .take(5)
+            .toList();
         final sectors = DailyTradeScannerService.instance.latestSectorStrengths;
         final globalScore = DailyTradeScannerService.instance.latestGlobalScore;
 
@@ -189,6 +197,12 @@ class _DailyTradeCommandCenterState extends State<DailyTradeCommandCenter> {
                 sectors: sectors,
               ),
               const SizedBox(height: 8),
+              _CrazyMoneyPanel(
+                loading: loading,
+                candidates: crazyMoneyCandidates,
+              ),
+              const SizedBox(height: 8),
+
               _IntradayRadarPanel(
                 events: _radarEvents,
                 scanning: _radarScanning,
@@ -405,7 +419,7 @@ class _CandidatesPanel extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 22),
               child: Center(
                 child: Text(
-                  'Şu an güvenlik filtresini geçen fırsat yok.',
+                  'Güvenlik filtresini geçen fırsat yok.',
                   style: TextStyle(color: Color(0xFF8FA39A), fontSize: 10),
                 ),
               ),
@@ -475,7 +489,9 @@ class _CandidateRow extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
+                _BistIndexBadge(symbol: candidate.symbol),
+                const SizedBox(width: 6),
                 Text(
                   '${candidate.livePrice.toStringAsFixed(2)} ₺',
                   style: TextStyle(
@@ -553,6 +569,8 @@ class _CandidateRow extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 7),
+            _MoneyRadarStrip(candidate: candidate),
           ],
         ),
       ),
@@ -569,6 +587,140 @@ class _CandidateRow extends StatelessWidget {
           change: candidate.changePercent,
           aiScore: candidate.crocScore,
         ),
+      ),
+    );
+  }
+}
+
+class _MoneyRadarStrip extends StatelessWidget {
+  final DailyTradeCandidate candidate;
+
+  const _MoneyRadarStrip({required this.candidate});
+
+  String _tlVolume(double value) {
+    if (value >= 1000000000) {
+      return '${(value / 1000000000).toStringAsFixed(1)} Mr';
+    }
+
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)} Mn';
+    }
+
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(0)} Bin';
+    }
+
+    return value.toStringAsFixed(0);
+  }
+
+  Color get _moneyColor {
+    if (candidate.moneyScore >= 75) {
+      return const Color(0xFF70F4AD);
+    }
+
+    if (candidate.moneyScore >= 55) {
+      return const Color(0xFFFFC857);
+    }
+
+    return const Color(0xFFFF8A92);
+  }
+
+  Color get _riskColor {
+    if (candidate.overboughtScore >= 70) {
+      return const Color(0xFFFF6673);
+    }
+
+    if (candidate.overboughtScore >= 45) {
+      return const Color(0xFFFFC857);
+    }
+
+    return const Color(0xFF70F4AD);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!candidate.moneyRadarAvailable) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A1813),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF18372C)),
+        ),
+        child: const Text(
+          'PARA RADARI • VERİ BEKLENİYOR',
+          style: TextStyle(
+            color: Color(0xFF60776D),
+            fontSize: 7.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1D16),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _moneyColor.withValues(alpha: .25)),
+      ),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            'PARA ${candidate.moneyScore}',
+            style: TextStyle(
+              color: _moneyColor,
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            '5DK ${candidate.moneyVolumeRatio.toStringAsFixed(1)}x',
+            style: const TextStyle(
+              color: Color(0xFFC8D5CF),
+              fontSize: 7.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            '15DK ${candidate.moneyVolume15Ratio.toStringAsFixed(1)}x',
+            style: const TextStyle(
+              color: Color(0xFFC8D5CF),
+              fontSize: 7.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            '${_tlVolume(candidate.moneyTlVolume)} TL',
+            style: const TextStyle(
+              color: Color(0xFFC8D5CF),
+              fontSize: 7.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            'RSI ${candidate.moneyRsi.toStringAsFixed(0)}',
+            style: const TextStyle(
+              color: Color(0xFFC8D5CF),
+              fontSize: 7.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            'RİSK ',
+            style: TextStyle(
+              color: _riskColor,
+              fontSize: 7.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -614,6 +766,354 @@ class _TradeChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CrazyMoneyPanel extends StatelessWidget {
+  final bool loading;
+  final List<CrazyMoneyCandidate> candidates;
+
+  const _CrazyMoneyPanel({required this.loading, required this.candidates});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF160C05),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xFFFF8A3D).withValues(alpha: .45),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.local_fire_department_rounded,
+                color: Color(0xFFFF8A3D),
+                size: 19,
+              ),
+              const SizedBox(width: 7),
+              const Text(
+                'ÇILGIN PARA',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF8A3D).withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'ANLIK PARA AKIŞI',
+                  style: TextStyle(
+                    color: Color(0xFFFFA76C),
+                    fontSize: 7,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              const Text(
+                'İlk 5',
+                style: TextStyle(
+                  color: Color(0xFF8C7464),
+                  fontSize: 8,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Teknik fırsattan bağımsız güçlü para hareketleri',
+            style: TextStyle(
+              color: Color(0xFF9E8879),
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 9),
+
+          if (loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else if (candidates.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Center(
+                child: Text(
+                  'Çılgın Para eşiğini geçen hisse yok.',
+                  style: TextStyle(
+                    color: Color(0xFF9E8879),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            )
+          else
+            ...List.generate(
+              candidates.length,
+              (index) =>
+                  _CrazyMoneyRow(rank: index + 1, candidate: candidates[index]),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CrazyMoneyRow extends StatelessWidget {
+  final int rank;
+  final CrazyMoneyCandidate candidate;
+
+  const _CrazyMoneyRow({required this.rank, required this.candidate});
+
+  Color get _changeColor => candidate.changePercent >= 0
+      ? const Color(0xFF70F4AD)
+      : const Color(0xFFFF6673);
+
+  String _tlVolume(double value) {
+    if (value >= 1000000000) {
+      return '${(value / 1000000000).toStringAsFixed(1)} Mr';
+    }
+
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)} Mn';
+    }
+
+    if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(0)} Bin';
+    }
+
+    return value.toStringAsFixed(0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final aboveVwap = candidate.aboveVwap;
+
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => StockDetailScreen(
+              code: candidate.symbol,
+              company: candidate.company,
+              price: candidate.livePrice,
+              change: candidate.changePercent,
+              aiScore: candidate.crazyScore,
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 7),
+        padding: const EdgeInsets.fromLTRB(10, 10, 9, 9),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1008),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFFFF8A3D).withValues(alpha: .25),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '#$rank',
+                  style: const TextStyle(
+                    color: Color(0xFF8C7464),
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  candidate.symbol,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _BistIndexBadge(symbol: candidate.symbol),
+                const SizedBox(width: 6),
+                Text(
+                  ' ₺',
+                  style: TextStyle(
+                    color: _changeColor,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '${candidate.changePercent >= 0 ? '+' : ''}${candidate.changePercent.toStringAsFixed(2)}%',
+                  style: TextStyle(
+                    color: _changeColor,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF8A3D).withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(
+                      color: const Color(0xFFFF8A3D).withValues(alpha: .35),
+                    ),
+                  ),
+                  child: Text(
+                    'CRAZY ${candidate.crazyScore}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFA76C),
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFFFFA76C),
+                  size: 17,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 6),
+
+            Text(
+              candidate.reason,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFC5B3A6),
+                fontSize: 8.5,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Wrap(
+              spacing: 5,
+              runSpacing: 5,
+              children: [
+                _CrazyMoneyChip(
+                  label: 'PARA',
+                  value: '${candidate.moneyScore}',
+                ),
+                _CrazyMoneyChip(
+                  label: 'HAFIZA',
+                  value: '${candidate.memoryScore}',
+                ),
+                _CrazyMoneyChip(
+                  label: 'HACİM',
+                  value: '${candidate.volumeRatio.toStringAsFixed(1)}x',
+                ),
+                _CrazyMoneyChip(
+                  label: '15DK',
+                  value: '${candidate.volume15Ratio.toStringAsFixed(1)}x',
+                ),
+                _CrazyMoneyChip(
+                  label: 'VWAP',
+                  value: aboveVwap ? 'ÜSTÜ' : 'ALTI',
+                  positive: aboveVwap,
+                ),
+                _CrazyMoneyChip(
+                  label: 'CMF',
+                  value: candidate.cmf.toStringAsFixed(2),
+                  positive: candidate.cmf > 0,
+                ),
+                _CrazyMoneyChip(
+                  label: 'RSI',
+                  value: candidate.rsi.toStringAsFixed(0),
+                ),
+                _CrazyMoneyChip(
+                  label: 'TL',
+                  value: _tlVolume(candidate.tlVolume),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CrazyMoneyChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool? positive;
+
+  const _CrazyMoneyChip({
+    required this.label,
+    required this.value,
+    this.positive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final valueColor = positive == null
+        ? const Color(0xFFFFC39B)
+        : positive!
+        ? const Color(0xFF70F4AD)
+        : const Color(0xFFFF8A92);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF24150C),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: const Color(0xFF55301B)),
+      ),
+      child: RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: '$label ',
+              style: const TextStyle(
+                color: Color(0xFF8C7464),
+                fontSize: 7,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            TextSpan(
+              text: value,
+              style: TextStyle(
+                color: valueColor,
+                fontSize: 8,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -680,7 +1180,7 @@ class _IntradayRadarPanel extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Åimdi tara',
+                tooltip: '5 dakikada bir BIST 100 taranır • BIST 30 dahil',
                 visualDensity: VisualDensity.compact,
                 onPressed: scanning ? null : onScanNow,
                 icon: scanning
@@ -747,7 +1247,7 @@ class _IntradayRadarPanel extends StatelessWidget {
           if (lastScan != null) ...[
             const SizedBox(height: 7),
             Text(
-              'Son tarama $timeText â€¢ 5 dakikada bir BIST 100 taranır • BIST 30 dahil • BIST 30 dahil',
+              'Son tarama $timeText • 5 dakikada bir BIST 100 taranır • BIST 30 dahil',
               style: const TextStyle(
                 color: Color(0xFF52675F),
                 fontSize: 7.5,
@@ -817,9 +1317,11 @@ class _IntradayRadarCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(width: 7),
+                const SizedBox(width: 6),
+                _BistIndexBadge(symbol: candidate.symbol),
+                const SizedBox(width: 6),
                 Text(
-                  '${candidate.livePrice.toStringAsFixed(2)} â‚º',
+                  '${candidate.livePrice.toStringAsFixed(2)} ₺',
                   style: const TextStyle(
                     color: Color(0xFF70F4AD),
                     fontSize: 10,
@@ -877,7 +1379,7 @@ class _IntradayRadarCard extends StatelessWidget {
                   child: _TradeChip(
                     label: 'ALIM',
                     value:
-                        '${candidate.entryLow.toStringAsFixed(2)}â€“${candidate.entryHigh.toStringAsFixed(2)}',
+                        '${candidate.entryLow.toStringAsFixed(2)}–${candidate.entryHigh.toStringAsFixed(2)}',
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -934,4 +1436,50 @@ class _LiveRadarEvent {
   final DateTime detectedAt;
 
   const _LiveRadarEvent({required this.candidate, required this.detectedAt});
+}
+
+class _BistIndexBadge extends StatelessWidget {
+  final String symbol;
+
+  const _BistIndexBadge({required this.symbol});
+
+  @override
+  Widget build(BuildContext context) {
+    final code = symbol.toUpperCase();
+
+    final String text;
+    final Color color;
+
+    if (BistIndexMembership.isBist30(code)) {
+      text = 'B30';
+      color = const Color(0xFFFFC857);
+    } else if (BistIndexMembership.isBist50(code)) {
+      text = 'B50';
+      color = const Color(0xFF55C7F3);
+    } else if (BistIndexMembership.isBist100(code)) {
+      text = 'B100';
+      color = const Color(0xFF70F4AD);
+    } else {
+      text = 'BIST';
+      color = const Color(0xFF71877D);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: color.withValues(alpha: .35)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 7,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .2,
+        ),
+      ),
+    );
+  }
 }

@@ -22,13 +22,13 @@ class FundIntelligenceResult {
   });
 
   const FundIntelligenceResult.dataWaiting()
-      : available = false,
-        score = 0,
-        verdict = 'VERI BEKLENIYOR',
-        confidence = 'DUSUK',
-        summary = 'Yeterli gercek veri olmadan CROC fon gorusu uretmez.',
-        strengths = const [],
-        risks = const [],
-        layerScores = const {},
-        unavailableLayers = const ['TEFAS'];
+    : available = false,
+      score = 0,
+      verdict = 'VERI BEKLENIYOR',
+      confidence = 'DUSUK',
+      summary = 'Yeterli gercek veri olmadan CROC fon gorusu uretmez.',
+      strengths = const [],
+      risks = const [],
+      layerScores = const {},
+      unavailableLayers = const ['TEFAS'];
 }

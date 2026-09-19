@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../models/fund_flow_result.dart';
 import '../models/fund_history_result.dart';
 import '../models/fund_price_point.dart';
 
@@ -80,10 +81,7 @@ class TefasFundDataSource {
     });
 
     final response = await _client
-        .get(
-          uri,
-          headers: const <String, String>{'Accept': 'application/json'},
-        )
+        .get(uri, headers: const <String, String>{'Accept': 'application/json'})
         .timeout(const Duration(seconds: 15));
 
     if (response.statusCode != 200) {
@@ -244,6 +242,84 @@ class TefasFundDataSource {
       );
     } catch (error) {
       return _unavailable(fundCode, safePeriod, 'Fon verisi alinamadi: $error');
+    }
+  }
+
+  Future<FundFlowResult> fetchFlow(
+    String rawFundCode, {
+    int periodMonths = 1,
+  }) async {
+    final fundCode = _normalizeFundCode(rawFundCode);
+
+    final safePeriod = <int>[1, 3, 6, 12].contains(periodMonths)
+        ? periodMonths
+        : 1;
+
+    if (fundCode.isEmpty) {
+      return FundFlowResult.unavailable(
+        fundCode: '',
+        periodMonths: safePeriod,
+        status: 'GECERLI FON KODU GEREKLI',
+      );
+    }
+
+    final periodParam = switch (safePeriod) {
+      3 => '3A',
+      6 => '6A',
+      12 => '1Y',
+      _ => '1A',
+    };
+
+    final uri = Uri.https(_gatewayHost, '/', <String, String>{
+      'action': 'flow',
+      'fund': fundCode,
+      'period': periodParam,
+    });
+
+    try {
+      final response = await _client
+          .get(
+            uri,
+            headers: const <String, String>{'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 25));
+
+      if (response.statusCode != 200) {
+        return FundFlowResult.unavailable(
+          fundCode: fundCode,
+          periodMonths: safePeriod,
+          status: 'Fund Flow Gateway HTTP ${response.statusCode}',
+        );
+      }
+
+      final dynamic decoded = jsonDecode(response.body);
+
+      if (decoded is! Map<String, dynamic>) {
+        return FundFlowResult.unavailable(
+          fundCode: fundCode,
+          periodMonths: safePeriod,
+          status: 'Fund Flow Gateway yaniti gecersiz.',
+        );
+      }
+
+      if (decoded['available'] != true) {
+        return FundFlowResult.unavailable(
+          fundCode: fundCode,
+          periodMonths: safePeriod,
+          status:
+              decoded['status']?.toString() ??
+              decoded['error']?.toString() ??
+              'FON AKIS VERISI BEKLENIYOR',
+        );
+      }
+
+      return FundFlowResult.fromJson(decoded);
+    } catch (error) {
+      return FundFlowResult.unavailable(
+        fundCode: fundCode,
+        periodMonths: safePeriod,
+        status: 'Fon akis verisi alinamadi: $error',
+      );
     }
   }
 

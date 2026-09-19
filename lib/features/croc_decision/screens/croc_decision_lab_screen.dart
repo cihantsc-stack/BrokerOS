@@ -9,12 +9,10 @@ class CrocDecisionLabScreen extends StatefulWidget {
   const CrocDecisionLabScreen({super.key});
 
   @override
-  State<CrocDecisionLabScreen> createState() =>
-      _CrocDecisionLabScreenState();
+  State<CrocDecisionLabScreen> createState() => _CrocDecisionLabScreenState();
 }
 
-class _CrocDecisionLabScreenState
-    extends State<CrocDecisionLabScreen> {
+class _CrocDecisionLabScreenState extends State<CrocDecisionLabScreen> {
   final LiveDecisionEngine _engine = LiveDecisionEngine();
 
   DecisionSnapshot? _snapshot;
@@ -29,8 +27,7 @@ class _CrocDecisionLabScreenState
   }
 
   Future<void> _load({String? selectedCode}) async {
-    final code =
-        (selectedCode ?? _selectedCode).toUpperCase();
+    final code = (selectedCode ?? _selectedCode).toUpperCase();
 
     if (mounted) {
       setState(() {
@@ -40,9 +37,7 @@ class _CrocDecisionLabScreenState
     }
 
     try {
-      final snapshot = await _engine.buildSnapshot(
-        selectedCode: code,
-      );
+      final snapshot = await _engine.buildSnapshot(selectedCode: code);
 
       if (!mounted) return;
 
@@ -88,10 +83,7 @@ class _CrocDecisionLabScreenState
             SizedBox(height: 2),
             Text(
               'Tek canlı fiyat kaynağı • mock fiyat yok',
-              style: TextStyle(
-                color: DecisionTheme.muted,
-                fontSize: 10,
-              ),
+              style: TextStyle(color: DecisionTheme.muted, fontSize: 10),
             ),
           ],
         ),
@@ -103,18 +95,13 @@ class _CrocDecisionLabScreenState
           ),
         ],
       ),
-      body: SafeArea(
-        top: false,
-        child: _body(),
-      ),
+      body: SafeArea(top: false, child: _body()),
     );
   }
 
   Widget _body() {
     if (_loading && _snapshot == null) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null && _snapshot == null) {
@@ -142,9 +129,7 @@ class _CrocDecisionLabScreenState
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: DecisionTheme.muted,
-                ),
+                style: const TextStyle(color: DecisionTheme.muted),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
@@ -165,24 +150,15 @@ class _CrocDecisionLabScreenState
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final horizontal =
-            constraints.maxWidth < 700 ? 12.0 : 20.0;
+        final horizontal = constraints.maxWidth < 700 ? 12.0 : 20.0;
 
         return SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            horizontal,
-            16,
-            horizontal,
-            30,
-          ),
+          padding: EdgeInsets.fromLTRB(horizontal, 16, horizontal, 30),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_loading)
-                const LinearProgressIndicator(minHeight: 2),
-              if (_loading)
-                const SizedBox(height: 10),
+              if (_loading) const LinearProgressIndicator(minHeight: 2),
+              if (_loading) const SizedBox(height: 10),
               MarketModeCard(snapshot: snapshot),
               const SizedBox(height: 14),
               const Text(
@@ -200,9 +176,7 @@ class _CrocDecisionLabScreenState
                 onSelected: _selectStock,
               ),
               const SizedBox(height: 14),
-              FinalDecisionCard(
-                signal: snapshot.selected,
-              ),
+              FinalDecisionCard(signal: snapshot.selected),
               const SizedBox(height: 14),
               const Text(
                 'BİRLEŞİK ANALİZ FAKTÖRLERİ',
@@ -213,19 +187,14 @@ class _CrocDecisionLabScreenState
                 ),
               ),
               const SizedBox(height: 9),
-              FactorGrid(
-                factors: snapshot.factors,
-              ),
+              FactorGrid(factors: snapshot.factors),
               const SizedBox(height: 18),
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: const Color(0xFF071711),
-                  borderRadius:
-                      BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFF1D6A4A),
-                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF1D6A4A)),
                 ),
                 child: const Text(
                   'CANLI VERİ MODU: Fiyat, günlük değişim ve mum verileri CROC Data Gateway üzerinden alınır. '

@@ -11,7 +11,7 @@ class MockMarketRepository implements MarketRepository {
       moneyFlow: 4.2,
       smartMoney: 3.8,
       foreignRatio: 56,
-      fundFlow: 1.4,
+      fundFlow: 0.0,
       volume: 142.8,
       rsi: 61,
       macd: 1.2,

@@ -10,15 +10,11 @@ import '../../../shared/widgets/broker_card.dart';
 class CrocPredictionShadowCard extends StatelessWidget {
   final StockAnalysis stock;
 
-  const CrocPredictionShadowCard({
-    super.key,
-    required this.stock,
-  });
+  const CrocPredictionShadowCard({super.key, required this.stock});
 
   @override
   Widget build(BuildContext context) {
-    final predictions =
-        const CrocPredictionEngine().analyze(stock);
+    final predictions = const CrocPredictionEngine().analyze(stock);
 
     return BrokerCard(
       glow: true,
@@ -89,12 +85,9 @@ class CrocPredictionShadowCard extends StatelessWidget {
                 children: [
                   for (var i = 0; i < predictions.length; i++) ...[
                     Expanded(
-                      child: _PredictionTile(
-                        prediction: predictions[i],
-                      ),
+                      child: _PredictionTile(prediction: predictions[i]),
                     ),
-                    if (i != predictions.length - 1)
-                      const SizedBox(width: 10),
+                    if (i != predictions.length - 1) const SizedBox(width: 10),
                   ],
                 ],
               );
@@ -133,9 +126,7 @@ class CrocPredictionShadowCard extends StatelessWidget {
 class _PredictionTile extends StatelessWidget {
   final CrocPrediction prediction;
 
-  const _PredictionTile({
-    required this.prediction,
-  });
+  const _PredictionTile({required this.prediction});
 
   @override
   Widget build(BuildContext context) {
@@ -147,9 +138,7 @@ class _PredictionTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: tone.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: tone.withValues(alpha: 0.22),
-        ),
+        border: Border.all(color: tone.withValues(alpha: 0.22)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,28 +174,18 @@ class _PredictionTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _MetricRow(
-            label: 'Güven',
-            value: '%${prediction.confidence}',
-          ),
+          _MetricRow(label: 'Güven', value: '%${prediction.confidence}'),
           const SizedBox(height: 7),
-          _MetricRow(
-            label: 'Risk',
-            value: '%${prediction.riskScore}',
-          ),
+          _MetricRow(label: 'Risk', value: '%${prediction.riskScore}'),
           const SizedBox(height: 7),
-          _MetricRow(
-            label: 'Rejim',
-            value: prediction.regime,
-          ),
+          _MetricRow(label: 'Rejim', value: prediction.regime),
           const SizedBox(height: 11),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
               value: prediction.modelProbability / 100,
               minHeight: 7,
-              backgroundColor:
-                  BrokerColors.textSoft.withValues(alpha: 0.10),
+              backgroundColor: BrokerColors.textSoft.withValues(alpha: 0.10),
               valueColor: AlwaysStoppedAnimation<Color>(tone),
             ),
           ),
@@ -218,8 +197,7 @@ class _PredictionTile extends StatelessWidget {
   static Color _toneFor(CrocPrediction prediction) {
     final text = prediction.direction.toUpperCase();
 
-    if (text.contains('GÜÇLÜ POZİTİF') ||
-        text == 'POZİTİF') {
+    if (text.contains('GÜÇLÜ POZİTİF') || text == 'POZİTİF') {
       return BrokerColors.green;
     }
 
@@ -235,10 +213,7 @@ class _MetricRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _MetricRow({
-    required this.label,
-    required this.value,
-  });
+  const _MetricRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -247,10 +222,7 @@ class _MetricRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: BrokerColors.textSoft,
-            fontSize: 10,
-          ),
+          style: const TextStyle(color: BrokerColors.textSoft, fontSize: 10),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -272,9 +244,7 @@ class _MetricRow extends StatelessWidget {
 class _QualityStrip extends StatelessWidget {
   final List<CrocPrediction> predictions;
 
-  const _QualityStrip({
-    required this.predictions,
-  });
+  const _QualityStrip({required this.predictions});
 
   @override
   Widget build(BuildContext context) {
@@ -292,8 +262,7 @@ class _QualityStrip extends StatelessWidget {
       runSpacing: 8,
       children: [
         _MiniChip(text: 'Aktif veri $active/6'),
-        if (positives.isNotEmpty)
-          _MiniChip(text: positives.first),
+        if (positives.isNotEmpty) _MiniChip(text: positives.first),
         if (negatives.isNotEmpty)
           _MiniChip(text: negatives.first, warning: true),
       ],
@@ -305,35 +274,22 @@ class _MiniChip extends StatelessWidget {
   final String text;
   final bool warning;
 
-  const _MiniChip({
-    required this.text,
-    this.warning = false,
-  });
+  const _MiniChip({required this.text, this.warning = false});
 
   @override
   Widget build(BuildContext context) {
-    final tone =
-        warning ? BrokerColors.orange : BrokerColors.primary;
+    final tone = warning ? BrokerColors.orange : BrokerColors.primary;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: tone.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(
-          color: tone.withValues(alpha: 0.20),
-        ),
+        border: Border.all(color: tone.withValues(alpha: 0.20)),
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: tone,
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-        ),
+        style: TextStyle(color: tone, fontSize: 9, fontWeight: FontWeight.w800),
       ),
     );
   }
@@ -345,16 +301,11 @@ class _ShadowBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: BrokerColors.orange.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(
-          color: BrokerColors.orange.withValues(alpha: 0.28),
-        ),
+        border: Border.all(color: BrokerColors.orange.withValues(alpha: 0.28)),
       ),
       child: const Text(
         'GÖLGE MOD',

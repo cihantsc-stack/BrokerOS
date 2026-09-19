@@ -36,11 +36,6 @@ class BrokerConsensusEngine {
       positives.add('Yabancı Alımı');
     }
 
-    if (data.fundFlow > 0) {
-      institution += 15;
-      positives.add('Fon Girişi');
-    }
-
     // ==========================
     // TEKNİK
     // ==========================

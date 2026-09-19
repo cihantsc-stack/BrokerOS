@@ -10,14 +10,13 @@ class ExperienceCenterScreen extends StatefulWidget {
   const ExperienceCenterScreen({super.key});
 
   @override
-  State<ExperienceCenterScreen> createState() =>
-      _ExperienceCenterScreenState();
+  State<ExperienceCenterScreen> createState() => _ExperienceCenterScreenState();
 }
 
-class _ExperienceCenterScreenState
-    extends State<ExperienceCenterScreen> {
-  final TextEditingController _controller =
-      TextEditingController(text: 'ASELS');
+class _ExperienceCenterScreenState extends State<ExperienceCenterScreen> {
+  final TextEditingController _controller = TextEditingController(
+    text: 'ASELS',
+  );
 
   String? _error;
 
@@ -39,8 +38,7 @@ class _ExperienceCenterScreenState
 
     if (!RegExp(r'^[A-Z0-9]{3,6}$').hasMatch(symbol)) {
       setState(() {
-        _error =
-            'Geçerli bir BIST hisse kodu yaz. Örn: ASELS, KOCMT, THYAO';
+        _error = 'Geçerli bir BIST hisse kodu yaz. Örn: ASELS, KOCMT, THYAO';
       });
       return;
     }
@@ -51,9 +49,7 @@ class _ExperienceCenterScreenState
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => BrokerIntelligenceScreen(
-          symbol: symbol,
-        ),
+        builder: (_) => BrokerIntelligenceScreen(symbol: symbol),
       ),
     );
   }
@@ -107,8 +103,7 @@ class _ExperienceCenterScreenState
                     const SizedBox(height: 16),
                     TextField(
                       controller: _controller,
-                      textCapitalization:
-                          TextCapitalization.characters,
+                      textCapitalization: TextCapitalization.characters,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _analyze(),
                       style: const TextStyle(
@@ -118,8 +113,7 @@ class _ExperienceCenterScreenState
                         letterSpacing: 1.1,
                       ),
                       decoration: InputDecoration(
-                        hintText:
-                            'Hisse kodu: ASELS, KOCMT, THYAO...',
+                        hintText: 'Hisse kodu: ASELS, KOCMT, THYAO...',
                         hintStyle: const TextStyle(
                           color: BrokerColors.textSoft,
                           fontSize: 13,
@@ -168,13 +162,9 @@ class _ExperienceCenterScreenState
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: _analyze,
-                        icon: const Icon(
-                          Icons.auto_awesome_rounded,
-                        ),
+                        icon: const Icon(Icons.auto_awesome_rounded),
                         label: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 12,
-                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
                           child: Text(
                             'CROC NE DİYOR?',
                             style: TextStyle(
@@ -222,11 +212,7 @@ class _HowItWorksCard extends StatelessWidget {
             'AL / BEKLE / RİSK AZALT / UZAK DUR',
           ),
           const SizedBox(height: 10),
-          _row(
-            Icons.route_rounded,
-            'Plan',
-            'Alım bölgesi, hedef ve stop',
-          ),
+          _row(Icons.route_rounded, 'Plan', 'Alım bölgesi, hedef ve stop'),
           const SizedBox(height: 10),
           _row(
             Icons.query_stats_rounded,
@@ -254,19 +240,11 @@ class _HowItWorksCard extends StatelessWidget {
     );
   }
 
-  Widget _row(
-    IconData icon,
-    String title,
-    String text,
-  ) {
+  Widget _row(IconData icon, String title, String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          color: BrokerColors.primary,
-          size: 19,
-        ),
+        Icon(icon, color: BrokerColors.primary, size: 19),
         const SizedBox(width: 9),
         SizedBox(
           width: 72,

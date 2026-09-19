@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../core/prediction/services/prediction_ledger_service.dart';
 
@@ -531,11 +531,11 @@ class _BrokerIntelligenceScreenState extends State<BrokerIntelligenceScreen> {
                     SimpleStockDecisionCard(result: crocDecision),
                     const SizedBox(height: 16),
                     CrocAiEngineSection(stock: stock, decision: crocDecision),
-        const SizedBox(height: 16),
-        CrocPredictionShadowCard(stock: stock),
-        const SizedBox(height: 16),
-        CrocPredictionLedgerCard(symbol: stock.symbol),
-        const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                    CrocPredictionShadowCard(stock: stock),
+                    const SizedBox(height: 16),
+                    CrocPredictionLedgerCard(symbol: stock.symbol),
+                    const SizedBox(height: 16),
                     SimpleTradePlanCard(stock: stock),
                     const SizedBox(height: 16),
                     NextStepCard(stock: stock),
@@ -744,6 +744,3 @@ class _ProviderBanner extends StatelessWidget {
     );
   }
 }
-
-
-

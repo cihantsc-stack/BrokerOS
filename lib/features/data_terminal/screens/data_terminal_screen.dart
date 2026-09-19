@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../intelligence/broker_intelligence_screen.dart';
 
+import '../../../core/bist/database/bist_index_membership.dart';
 import '../../../core/bist/database/bist100_master_database.dart';
 import '../models/data_terminal_quote.dart';
 import '../services/data_terminal_service.dart';
@@ -21,145 +22,9 @@ class DataTerminalScreen extends StatefulWidget {
 }
 
 class _DataTerminalScreenState extends State<DataTerminalScreen> {
-  static const List<String> _bist100Codes = [
-    'AEFES',
-    'AKBNK',
-    'AKSA',
-    'AKSEN',
-    'ALARK',
-    'ALTNY',
-    'ANSGR',
-    'ARCLK',
-    'ASELS',
-    'ASTOR',
-    'BALSU',
-    'BERA',
-    'BIMAS',
-    'BRSAN',
-    'BRYAT',
-    'BSOKE',
-    'BTCIM',
-    'CANTE',
-    'CCOLA',
-    'CIMSA',
-    'CVKMD',
-    'CWENE',
-    'DAPGM',
-    'DOAS',
-    'DOHOL',
-    'DSTKF',
-    'ECILC',
-    'EFOR',
-    'EKGYO',
-    'ENERY',
-    'ENJSA',
-    'ENKAI',
-    'EREGL',
-    'ESEN',
-    'EUPWR',
-    'EUREN',
-    'FENER',
-    'FROTO',
-    'GARAN',
-    'GENIL',
-    'GESAN',
-    'GLRMK',
-    'GRSEL',
-    'GRTHO',
-    'GSRAY',
-    'GUBRF',
-    'HALKB',
-    'HEKTS',
-    'IEYHO',
-    'ISCTR',
-    'ISMEN',
-    'IZENR',
-    'KCHOL',
-    'KLRHO',
-    'KRDMD',
-    'KTLEV',
-    'KUYAS',
-    'MAGEN',
-    'MAVI',
-    'MGROS',
-    'MIATK',
-    'MPARK',
-    'OBAMS',
-    'ODAS',
-    'ODINE',
-    'OTKAR',
-    'OYAKC',
-    'PAHOL',
-    'PASEU',
-    'PATEK',
-    'PETKM',
-    'PGSUS',
-    'PSGYO',
-    'QUAGR',
-    'RALYH',
-    'REEDR',
-    'SAHOL',
-    'SARKY',
-    'SASA',
-    'SISE',
-    'SKBNK',
-    'SOKM',
-    'TAVHL',
-    'TCELL',
-    'THYAO',
-    'TKFEN',
-    'TOASO',
-    'TRALT',
-    'TRENJ',
-    'TRMET',
-    'TSKB',
-    'TTKOM',
-    'TUKAS',
-    'TUPRS',
-    'TURSG',
-    'ULKER',
-    'VAKBN',
-    'VESTL',
-    'YKBNK',
-    'ZOREN',
-  ];
-
-  static const Set<String> _bist30Codes = {
-    'AEFES',
-    'AKBNK',
-    'ASELS',
-    'ASTOR',
-    'BIMAS',
-    'DSTKF',
-    'EKGYO',
-    'ENKAI',
-    'EREGL',
-    'FROTO',
-    'GARAN',
-    'GUBRF',
-    'ISCTR',
-    'KCHOL',
-    'KRDMD',
-    'MGROS',
-    'PETKM',
-    'PGSUS',
-    'SAHOL',
-    'SASA',
-    'SISE',
-    'TAVHL',
-    'TCELL',
-    'THYAO',
-    'TOASO',
-    'TRALT',
-    'TTKOM',
-    'TUPRS',
-    'VAKBN',
-    'YKBNK',
-  };
-
   static const Map<String, String> _nameOverrides = {
     'PAHOL': 'Pasifik Holding',
-    'TAVHL': 'TAV HavalimanlarÄ±',
+    'TAVHL': 'TAV Havalimanları',
     'SISE': 'TÃ¼rkiye ÅiÅŸe ve Cam FabrikalarÄ±',
     'SKBNK': 'Åekerbank',
     'SOKM': 'Åok Marketler',
@@ -225,7 +90,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
   }
 
   List<MapEntry<String, String>> get _universeEntries {
-    return _bist100Codes
+    return BistIndexMembership.bist100
         .map((code) => MapEntry(code, _companyName(code)))
         .toList(growable: false);
   }
@@ -249,7 +114,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
       setState(() {
         _quotes = quotes;
         _loading = false;
-        _error = quotes.isEmpty ? 'CanlÄ± piyasa verisi alÄ±namadÄ±.' : null;
+        _error = quotes.isEmpty ? 'Canlı piyasa verisi alınamadı.' : null;
       });
     } catch (error) {
       if (!mounted) return;
@@ -277,7 +142,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
       return;
     }
 
-    // Zaten terminalde yÃ¼klÃ¼yse uzaktan tekrar Ã§ekme.
+    // Zaten terminalde yüklüyse uzaktan tekrar çekme.
     if (_quotes.any((quote) => quote.code == code)) {
       if (_remoteSearchQuote != null || _remoteSearchLoading) {
         setState(() {
@@ -313,7 +178,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
       '',
     );
 
-    // KullanÄ±cÄ± bu sÄ±rada baÅŸka ÅŸey yazdÄ±ysa eski cevap Ã§Ã¶pe gider.
+    // Kullanıcı bu sırada başka şey yazdıysa eski cevap çöpe gider.
     if (requestId != _searchRequestId || currentCode != code) {
       return;
     }
@@ -338,7 +203,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
         case _UniverseFilter.bist100:
           return true;
         case _UniverseFilter.bist30:
-          return _bist30Codes.contains(quote.code);
+          return BistIndexMembership.isBist30(quote.code);
         case _UniverseFilter.gainers:
           return quote.changePercent > 0;
         case _UniverseFilter.losers:
@@ -346,8 +211,8 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
       }
     }).toList();
 
-    // KullanÄ±cÄ± aÃ§Ä±kÃ§a bir BIST kodu aradÄ±ysa,
-    // BIST100 filtresinden baÄŸÄ±msÄ±z olarak gerÃ§ek Gateway sonucunu gÃ¶ster.
+    // Kullanıcı açıkça bir BIST kodu aradıysa,
+    // BIST100 filtresinden bağımsız olarak gerçek Gateway sonucunu göster.
     final remote = _remoteSearchQuote;
 
     if (query.isNotEmpty &&
@@ -450,7 +315,9 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
                                   return _QuoteRow(
                                     quote: quote,
                                     volumeText: _compact(quote.volume),
-                                    bist30: _bist30Codes.contains(quote.code),
+                                    bist30: BistIndexMembership.isBist30(
+                                      quote.code,
+                                    ),
                                     onTap: () => _openDetail(quote),
                                   );
                                 },
@@ -505,7 +372,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
                 ),
                 SizedBox(height: 3),
                 Text(
-                  'BIST 100 evreni â€¢ 60 sn otomatik yenileme',
+                  'BIST 100 evreni • 60 sn otomatik yenileme',
                   style: TextStyle(
                     color: Color(0xFF7E968C),
                     fontSize: 10,
@@ -528,7 +395,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
           ),
           const SizedBox(width: 8),
           IconButton(
-            tooltip: 'CanlÄ± veriyi yenile',
+            tooltip: 'Canlı veriyi yenile',
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh_rounded, color: Color(0xFF70F4AD)),
           ),
@@ -617,7 +484,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
           PopupMenuButton<_TerminalSort>(
             color: const Color(0xFF071712),
             initialValue: _sort,
-            tooltip: 'SÄ±ralama',
+            tooltip: 'Sıralama',
             onSelected: (value) => setState(() => _sort = value),
             itemBuilder: (context) => const [
               PopupMenuItem(
@@ -636,10 +503,7 @@ class _DataTerminalScreenState extends State<DataTerminalScreen> {
               ),
               PopupMenuItem(
                 value: _TerminalSort.changeDesc,
-                child: Text(
-                  '% deÄŸiÅŸim',
-                  style: TextStyle(color: Colors.white),
-                ),
+                child: Text('% değişim', style: TextStyle(color: Colors.white)),
               ),
               PopupMenuItem(
                 value: _TerminalSort.volumeDesc,
