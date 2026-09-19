@@ -4,12 +4,12 @@ import '../models/market_snapshot.dart';
 class BrokerConsensusEngine {
   static BrokerConsensus calculate(MarketSnapshot data) {
     int technical = 50;
-    int smartMoney = 50;
-    int institution = 50;
-    int news = 50;
-    int momentum = 50;
+    int smartMoney = 0;
+    int institution = 0;
+    int news = 0;
+    int momentum = 0;
     int risk = 100;
-    int gameTheory = 50;
+    int gameTheory = 0;
 
     final positives = <String>[];
     final negatives = <String>[];
@@ -19,21 +19,31 @@ class BrokerConsensusEngine {
     // ==========================
 
     if (data.smartMoney > 0) {
-      smartMoney += 35;
+      smartMoney = 85;
       positives.add('Smart Money');
-    } else {
-      smartMoney -= 20;
+    } else if (data.smartMoney < 0) {
+      smartMoney = 30;
       negatives.add('Smart Money Çıkışı');
     }
 
-    if (data.moneyFlow > 0) {
-      institution += 20;
-      positives.add('Kurumsal Para');
-    }
+    if (data.moneyFlow != 0 || data.foreignRatio > 0) {
+      institution = 50;
 
-    if (data.foreignRatio > 50) {
-      institution += 15;
-      positives.add('Yabancı Alımı');
+      if (data.moneyFlow > 0) {
+        institution += 20;
+        positives.add('Kurumsal Para');
+      } else if (data.moneyFlow < 0) {
+        institution -= 20;
+        negatives.add('Kurumsal Para Çıkışı');
+      }
+
+      if (data.foreignRatio > 50) {
+        institution += 15;
+        positives.add('Yabancı Alımı');
+      } else if (data.foreignRatio > 0 && data.foreignRatio < 40) {
+        institution -= 10;
+        negatives.add('Yabancı Oranı Zayıf');
+      }
     }
 
     // ==========================
@@ -64,22 +74,28 @@ class BrokerConsensusEngine {
     // HABER
     // ==========================
 
-    news += (data.newsScore / 4).round();
+    if (data.newsScore > 0) {
+      news = data.newsScore.clamp(0, 100).toInt();
 
-    if (data.newsScore > 75) {
-      positives.add('Pozitif Haber');
-    } else {
-      negatives.add('Haber Etkisi');
+      if (data.newsScore > 75) {
+        positives.add('Pozitif Haber');
+      } else if (data.newsScore < 40) {
+        negatives.add('Haber Etkisi');
+      }
     }
 
     // ==========================
     // MOMENTUM
     // ==========================
 
-    momentum += (data.sentiment / 4).round();
+    if (data.sentiment != 0) {
+      momentum = data.sentiment.clamp(0, 100).toInt();
 
-    if (data.sentiment > 65) {
-      positives.add('Momentum');
+      if (data.sentiment > 65) {
+        positives.add('Momentum');
+      } else if (data.sentiment < 40) {
+        negatives.add('Momentum Zayıf');
+      }
     }
 
     // ==========================
@@ -100,8 +116,8 @@ class BrokerConsensusEngine {
     if (smartMoney > 80 && institution > 80 && momentum > 70) {
       gameTheory = 92;
       positives.add('Game Theory');
-    } else {
-      gameTheory = 70;
+    } else if (smartMoney > 0 && institution > 0 && momentum > 0) {
+      gameTheory = 65;
     }
 
     technical = technical.clamp(0, 100).toInt();
@@ -112,19 +128,31 @@ class BrokerConsensusEngine {
     risk = risk.clamp(0, 100).toInt();
     gameTheory = gameTheory.clamp(0, 100).toInt();
 
-    final score =
-        (technical * 0.23 +
-                smartMoney * 0.25 +
-                institution * 0.18 +
-                news * 0.10 +
-                momentum * 0.14 +
-                risk * 0.05 +
-                gameTheory * 0.05)
-            .round();
+    final layers = <(int value, double weight)>[
+      (technical, 0.23),
+      if (smartMoney > 0) (smartMoney, 0.25),
+      if (institution > 0) (institution, 0.18),
+      if (news > 0) (news, 0.10),
+      if (momentum > 0) (momentum, 0.14),
+      (risk, 0.05),
+      if (gameTheory > 0) (gameTheory, 0.05),
+    ];
+
+    final activeWeight = layers.fold<double>(0, (sum, e) => sum + e.$2);
+    final weighted = layers.fold<double>(
+      0,
+      (sum, e) => sum + (e.$1 * e.$2),
+    );
+    final score = activeWeight <= 0 ? 0 : (weighted / activeWeight).round();
+
+    final hasDecisionData =
+        smartMoney > 0 || institution > 0 || news > 0 || momentum > 0;
 
     String decision;
 
-    if (score >= 90) {
+    if (!hasDecisionData) {
+      decision = 'VERİ BEKLENİYOR';
+    } else if (score >= 90) {
       decision = 'GÜÇLÜ AL';
     } else if (score >= 80) {
       decision = 'AL';
@@ -146,7 +174,7 @@ class BrokerConsensusEngine {
       momentumScore: momentum,
       riskScore: risk,
       gameTheoryScore: gameTheory,
-      confidence: score,
+      confidence: hasDecisionData ? score : 0,
       buySignals: positives.length,
       holdSignals: 3,
       sellSignals: negatives.length,
