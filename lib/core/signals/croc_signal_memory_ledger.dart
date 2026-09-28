@@ -1,4 +1,5 @@
 import 'croc_signal_memory_engine.dart';
+import 'croc_signal_exit_tracker.dart';
 
 /// Session-scoped, in-memory signal ledger. No network or disk side effects.
 ///
@@ -9,6 +10,7 @@ class CrocSignalMemoryLedger {
   final Map<String, CrocSignalSnapshot> _signals = {};
   final Map<String, Map<DateTime, CrocSignalObservation>> _observations = {};
   final CrocSignalMemoryEngine _engine = const CrocSignalMemoryEngine();
+  final CrocSignalExitTracker _exitTracker = const CrocSignalExitTracker();
 
   int get signalCount => _signals.length;
 
@@ -58,6 +60,14 @@ class CrocSignalMemoryLedger {
       horizon: horizon,
       sessionClosed: sessionClosed,
     );
+  }
+
+  /// The first observed target/stop event; same-bar collisions stay ambiguous.
+  /// Returns null only for an unknown signal ID.
+  CrocSignalExitEvent? firstExit(String signalId) {
+    final signal = _signals[signalId];
+    if (signal == null) return null;
+    return _exitTracker.evaluate(signal, _observations[signalId]!.values);
   }
 
   CrocSignalSnapshot? signal(String signalId) => _signals[signalId];
