@@ -957,7 +957,7 @@ class _CrazyMoneyRow extends StatelessWidget {
                 _BistIndexBadge(symbol: candidate.symbol),
                 const SizedBox(width: 6),
                 Text(
-                  ' ₺',
+                  '₺${candidate.livePrice.toStringAsFixed(2)}',
                   style: TextStyle(
                     color: _changeColor,
                     fontSize: 10.5,
