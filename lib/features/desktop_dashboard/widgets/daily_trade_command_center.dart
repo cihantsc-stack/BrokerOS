@@ -6,6 +6,7 @@ import '../../../core/bist/database/bist_index_membership.dart';
 
 import '../../../core/bist/models/sector_strength.dart';
 import '../../../core/signals/croc_signal_memory_engine.dart';
+import '../../../core/signals/croc_institutional_strength_engine.dart';
 import '../../stock_detail/screens/stock_detail_screen.dart';
 import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
@@ -1105,6 +1106,17 @@ class _CrazyMoneyRow extends StatelessWidget {
                   label: 'CMF',
                   value: candidate.cmf.toStringAsFixed(2),
                   positive: candidate.cmf > 0,
+                ),
+                _CrazyMoneyChip(
+                  label: 'KURUMSAL',
+                  value: const CrocInstitutionalStrengthEngine()
+                      .evaluate(
+                        cmf: candidate.cmf,
+                        vwap: candidate.vwap,
+                        price: candidate.livePrice,
+                        volumeRatio: candidate.volumeRatio,
+                      )
+                      .label,
                 ),
                 _CrazyMoneyChip(
                   label: 'RSI',
