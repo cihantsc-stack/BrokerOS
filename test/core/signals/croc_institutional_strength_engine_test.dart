@@ -37,7 +37,12 @@ void main() {
       volumeRatio: null,
       verifiedBuyLots: 1000,
       verifiedSellLots: 250,
-      participantDataVerified: true,
+      participantSource: CrocInstitutionalSource(
+        provider: 'TEST_FEED',
+        observedAt: DateTime.utc(2026, 9, 28, 12),
+        authenticated: true,
+      ),
+      asOf: DateTime.utc(2026, 9, 28, 13),
     );
     expect(result.evidence, CrocInstitutionalEvidence.verifiedParticipantFlow);
     expect(result.verifiedNetLots, 750);
@@ -51,8 +56,50 @@ void main() {
       volumeRatio: null,
       verifiedBuyLots: -10,
       verifiedSellLots: 2,
-      participantDataVerified: true,
+      participantSource: CrocInstitutionalSource(
+        provider: 'TEST_FEED',
+        observedAt: DateTime.utc(2026, 9, 28, 12),
+        authenticated: true,
+      ),
+      asOf: DateTime.utc(2026, 9, 28, 13),
     );
     expect(result.evidence, CrocInstitutionalEvidence.unavailable);
   });
+  test('stale provider data cannot claim verified institutional flow', () {
+    final result = engine.evaluate(
+      cmf: 0.1,
+      vwap: 99,
+      price: 100,
+      volumeRatio: 2,
+      verifiedBuyLots: 1000,
+      verifiedSellLots: 100,
+      participantSource: CrocInstitutionalSource(
+        provider: 'TEST_FEED',
+        observedAt: DateTime.utc(2026, 9, 25, 12),
+        authenticated: true,
+      ),
+      asOf: DateTime.utc(2026, 9, 28, 13),
+    );
+    expect(result.evidence, CrocInstitutionalEvidence.technicalProxy);
+    expect(result.verifiedNetLots, isNull);
+  });
+
+  test('unauthenticated provider cannot claim verified flow', () {
+    final result = engine.evaluate(
+      cmf: null,
+      vwap: null,
+      price: null,
+      volumeRatio: null,
+      verifiedBuyLots: 1000,
+      verifiedSellLots: 100,
+      participantSource: CrocInstitutionalSource(
+        provider: 'TEST_FEED',
+        observedAt: DateTime.utc(2026, 9, 28, 12),
+        authenticated: false,
+      ),
+      asOf: DateTime.utc(2026, 9, 28, 13),
+    );
+    expect(result.evidence, CrocInstitutionalEvidence.unavailable);
+  });
+
 }
