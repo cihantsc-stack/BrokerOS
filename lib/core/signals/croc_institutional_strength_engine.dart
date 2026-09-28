@@ -33,6 +33,84 @@ class CrocInstitutionalSource {
   });
 }
 
+/// Per-participant totals from an authorized, externally verified source.
+/// Aggregating these rows does not imply that every broker trade belongs
+/// to a single institutional investor.
+class CrocParticipantFlow {
+  final String participant;
+  final double buyLots;
+  final double sellLots;
+
+  const CrocParticipantFlow({
+    required this.participant,
+    required this.buyLots,
+    required this.sellLots,
+  });
+
+  double get netLots => buyLots - sellLots;
+}
+
+class CrocParticipantFlowReport {
+  final CrocInstitutionalSource source;
+  final List<CrocParticipantFlow> participants;
+  final double totalBuyLots;
+  final double totalSellLots;
+
+  const CrocParticipantFlowReport({
+    required this.source,
+    required this.participants,
+    required this.totalBuyLots,
+    required this.totalSellLots,
+  });
+
+  double get netLots => totalBuyLots - totalSellLots;
+}
+
+class CrocParticipantFlowAggregator {
+  const CrocParticipantFlowAggregator();
+
+  /// Returns null when data provenance, age, or row integrity is insufficient.
+  CrocParticipantFlowReport? aggregate({
+    required CrocInstitutionalSource source,
+    required List<CrocParticipantFlow> rows,
+    required DateTime asOf,
+  }) {
+    if (!source.authenticated ||
+        source.provider.trim().isEmpty ||
+        source.observedAt.isAfter(asOf) ||
+        asOf.difference(source.observedAt) > const Duration(days: 1) ||
+        rows.isEmpty) {
+      return null;
+    }
+
+    final names = <String>{};
+    var buys = 0.0;
+    var sells = 0.0;
+    for (final row in rows) {
+      final name = row.participant.trim().toUpperCase();
+      if (name.isEmpty ||
+          !names.add(name) ||
+          !row.buyLots.isFinite ||
+          !row.sellLots.isFinite ||
+          row.buyLots < 0 ||
+          row.sellLots < 0) {
+        return null;
+      }
+      buys += row.buyLots;
+      sells += row.sellLots;
+    }
+    if (!buys.isFinite || !sells.isFinite) return null;
+    final ordered = List<CrocParticipantFlow>.of(rows)
+      ..sort((a, b) => b.netLots.compareTo(a.netLots));
+    return CrocParticipantFlowReport(
+      source: source,
+      participants: List<CrocParticipantFlow>.unmodifiable(ordered),
+      totalBuyLots: buys,
+      totalSellLots: sells,
+    );
+  }
+}
+
 class CrocInstitutionalStrengthEngine {
   const CrocInstitutionalStrengthEngine();
 
