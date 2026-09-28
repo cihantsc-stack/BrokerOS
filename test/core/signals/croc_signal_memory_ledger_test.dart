@@ -1,0 +1,60 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/core/signals/croc_signal_memory_engine.dart';
+import 'package:mobile/core/signals/croc_signal_memory_ledger.dart';
+
+void main() {
+  final start = DateTime.utc(2026, 9, 28, 10);
+  CrocSignalSnapshot signal({String id = 'AKBNK-20260928-1000'}) =>
+      CrocSignalSnapshot(
+        id: id,
+        symbol: 'AKBNK',
+        engine: 'CRAZY_MONEY',
+        createdAt: start,
+        entryPrice: 100,
+        score: 75,
+        targetPrice: 105,
+        stopPrice: 97,
+      );
+
+  CrocSignalObservation point(int minute, double high, double low, double close) =>
+      CrocSignalObservation(
+        observedAt: start.add(Duration(minutes: minute)),
+        high: high,
+        low: low,
+        close: close,
+      );
+
+  test('freezes original signal and rejects duplicate IDs', () {
+    final ledger = CrocSignalMemoryLedger();
+    expect(ledger.recordSignal(signal()), isTrue);
+    expect(ledger.recordSignal(signal()), isFalse);
+    expect(ledger.signal('AKBNK-20260928-1000')!.score, 75);
+    expect(ledger.signalCount, 1);
+  });
+
+  test('rejects observations before signal, invalid data and duplicate times', () {
+    final ledger = CrocSignalMemoryLedger();
+    expect(ledger.recordSignal(signal()), isTrue);
+    expect(ledger.recordObservation('unknown', point(5, 101, 99, 100)), isFalse);
+    expect(ledger.recordObservation(signal().id, point(-1, 101, 99, 100)), isFalse);
+    expect(ledger.recordObservation(signal().id, point(5, 99, 101, 100)), isFalse);
+    expect(ledger.recordObservation(signal().id, point(5, 106, 98, 104)), isTrue);
+    expect(ledger.recordObservation(signal().id, point(5, 200, 1, 150)), isFalse);
+    final result = ledger.outcome(signal().id, CrocSignalHorizon.minutes5);
+    expect(result?.returnPercent, closeTo(4, 0.0001));
+    expect(result?.targetTouched, isTrue);
+    expect(result?.stopTouched, isFalse);
+  });
+
+  test('later observations do not rewrite earlier horizon results', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(5, 102, 99, 101));
+    final original = ledger.outcome(signal().id, CrocSignalHorizon.minutes5);
+    ledger.recordObservation(signal().id, point(15, 115, 90, 110));
+    final after = ledger.outcome(signal().id, CrocSignalHorizon.minutes5);
+    expect(after?.returnPercent, original?.returnPercent);
+    expect(after?.targetTouched, isFalse);
+    expect(ledger.outcome(signal().id, CrocSignalHorizon.minutes15)?.targetTouched, isTrue);
+  });
+}
