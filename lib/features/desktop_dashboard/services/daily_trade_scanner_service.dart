@@ -220,6 +220,9 @@ class DailyTradeScannerService {
                   overboughtScore: diagnostic.overboughtScore,
                   volumeRatio: diagnostic.volumeRatio,
                   volume15Ratio: diagnostic.volume15Ratio,
+                  sameClockLotRatio: diagnostic.lotAnomaly?.ratio,
+                  sameClockReferenceSessions:
+                      diagnostic.lotAnomaly?.referenceSessions ?? 0,
                   tlVolume: diagnostic.tlVolume,
                   cmf: diagnostic.chaikinMoneyFlow,
                   vwap: diagnostic.vwap,
@@ -373,6 +376,9 @@ class DailyTradeScannerService {
                     overboughtScore: diagnostic.overboughtScore,
                     volumeRatio: diagnostic.volumeRatio,
                     volume15Ratio: diagnostic.volume15Ratio,
+                  sameClockLotRatio: diagnostic.lotAnomaly?.ratio,
+                  sameClockReferenceSessions:
+                      diagnostic.lotAnomaly?.referenceSessions ?? 0,
                     tlVolume: diagnostic.tlVolume,
                     cmf: diagnostic.chaikinMoneyFlow,
                     vwap: diagnostic.vwap,
