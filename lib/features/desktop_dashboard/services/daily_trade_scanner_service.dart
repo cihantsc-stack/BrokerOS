@@ -7,6 +7,8 @@ import '../../../core/bist/models/bist_stock_tick.dart';
 import '../../../core/bist/models/sector_strength.dart';
 import '../../../core/data_foundation/market/yahoo_bist_market_data_source.dart';
 import '../../../core/signals/croc_live_signal_engine.dart';
+import '../../../core/signals/croc_signal_memory_engine.dart';
+import '../../../core/signals/croc_signal_memory_ledger.dart';
 import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
 import 'global_pulse_service.dart';
@@ -30,6 +32,15 @@ class DailyTradeScannerService {
   int _latestGlobalScore = 50;
 
   int get latestGlobalScore => _latestGlobalScore;
+
+  // Session-only memory: first observed scanner snapshot, not an execution.
+  final CrocSignalMemoryLedger _signalMemory = CrocSignalMemoryLedger();
+  final Map<String, DateTime> _firstSeenBySymbol = {};
+
+  DateTime? crazyMoneyFirstSeen(String symbol) =>
+      _firstSeenBySymbol[symbol.toUpperCase()];
+
+  int get crazyMoneyMemoryCount => _signalMemory.signalCount;
 
   List<CrazyMoneyCandidate> _latestCrazyMoneyCandidates = const [];
 
@@ -566,6 +577,29 @@ class DailyTradeScannerService {
 
       return b.tlVolume.compareTo(a.tlVolume);
     });
+
+    // Capture the first visible candidate of the day without changing ranking.
+    // This records a scanner observation, NOT a buy or executed trade.
+    final seenAt = DateTime.now();
+    for (final candidate in crazyMoneyResults) {
+      if (!candidate.livePrice.isFinite || candidate.livePrice <= 0) continue;
+      final day = '${seenAt.year.toString().padLeft(4, '0')}-'
+          '${seenAt.month.toString().padLeft(2, '0')}-'
+          '${seenAt.day.toString().padLeft(2, '0')}';
+      final id = '${candidate.symbol.toUpperCase()}-$day-CRAZY';
+      if (_signalMemory.recordSignal(
+        CrocSignalSnapshot(
+          id: id,
+          symbol: candidate.symbol,
+          engine: 'CRAZY_MONEY_SCANNER',
+          createdAt: seenAt,
+          entryPrice: candidate.livePrice,
+          score: candidate.crazyScore,
+        ),
+      )) {
+        _firstSeenBySymbol[candidate.symbol.toUpperCase()] = seenAt;
+      }
+    }
 
     _latestCrazyMoneyCandidates = List<CrazyMoneyCandidate>.unmodifiable(
       crazyMoneyResults,
