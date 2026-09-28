@@ -1107,16 +1107,26 @@ class _CrazyMoneyRow extends StatelessWidget {
                   value: candidate.cmf.toStringAsFixed(2),
                   positive: candidate.cmf > 0,
                 ),
-                _CrazyMoneyChip(
-                  label: 'KURUMSAL',
-                  value: const CrocInstitutionalStrengthEngine()
+                Tooltip(
+                  message: const CrocInstitutionalStrengthEngine()
                       .evaluate(
                         cmf: candidate.cmf,
                         vwap: candidate.vwap,
                         price: candidate.livePrice,
                         volumeRatio: candidate.volumeRatio,
                       )
-                      .label,
+                      .explanation,
+                  child: _CrazyMoneyChip(
+                    label: 'TEKNİK AKIŞ',
+                    value: const CrocInstitutionalStrengthEngine()
+                        .evaluate(
+                          cmf: candidate.cmf,
+                          vwap: candidate.vwap,
+                          price: candidate.livePrice,
+                          volumeRatio: candidate.volumeRatio,
+                        )
+                        .label,
+                  ),
                 ),
                 _CrazyMoneyChip(
                   label: 'RSI',
