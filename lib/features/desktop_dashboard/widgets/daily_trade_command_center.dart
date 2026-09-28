@@ -1040,6 +1040,11 @@ class _CrazyMoneyRow extends StatelessWidget {
                   label: '15DK',
                   value: '${candidate.volume15Ratio.toStringAsFixed(1)}x',
                 ),
+                if (candidate.sameClockLotRatio != null)
+                  _CrazyMoneyChip(
+                    label: 'LOT / SAAT',
+                    value: '${candidate.sameClockLotRatio!.toStringAsFixed(1)}x',
+                  ),
                 _CrazyMoneyChip(
                   label: 'VWAP',
                   value: aboveVwap ? 'ÜSTÜ' : 'ALTI',
