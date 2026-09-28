@@ -42,6 +42,22 @@ class DailyTradeScannerService {
 
   int get crazyMoneyMemoryCount => _signalMemory.signalCount;
 
+  CrocSignalOutcome? crazyMoneyOutcome(
+    String symbol,
+    CrocSignalHorizon horizon,
+  ) {
+    final seenAt = _firstSeenBySymbol[symbol.toUpperCase()];
+    if (seenAt == null) return null;
+    final day = '${seenAt.year.toString().padLeft(4, '0')}-'
+        '${seenAt.month.toString().padLeft(2, '0')}-'
+        '${seenAt.day.toString().padLeft(2, '0')}';
+    return _signalMemory.outcome(
+      '${symbol.toUpperCase()}-$day-CRAZY',
+      horizon,
+    );
+  }
+
+
   List<CrazyMoneyCandidate> _latestCrazyMoneyCandidates = const [];
 
   List<CrazyMoneyCandidate> get latestCrazyMoneyCandidates =>
@@ -598,6 +614,18 @@ class DailyTradeScannerService {
         ),
       )) {
         _firstSeenBySymbol[candidate.symbol.toUpperCase()] = seenAt;
+      } else {
+        // A subsequent scan is a price observation, not a new signal.
+        // The daily snapshot remains immutable.
+        _signalMemory.recordObservation(
+          id,
+          CrocSignalObservation(
+            observedAt: seenAt,
+            high: candidate.livePrice,
+            low: candidate.livePrice,
+            close: candidate.livePrice,
+          ),
+        );
       }
     }
 
