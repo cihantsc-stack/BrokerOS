@@ -1049,10 +1049,12 @@ class _CrazyMoneyRow extends StatelessWidget {
                     candidate.sameClockLotRatio! >= 2.0)
                   _CrazyMoneyChip(
                     label: 'LOT TEYİDİ',
-                    value: aboveVwap && candidate.cmf > 0
-                        ? 'FİYAT + CMF'
+                    value: aboveVwap && candidate.cmf > 0 &&
+                            candidate.changePercent > 0
+                        ? '3LÜ TEYİT'
                         : 'TEYİTSİZ',
-                    positive: aboveVwap && candidate.cmf > 0,
+                    positive: aboveVwap && candidate.cmf > 0 &&
+                        candidate.changePercent > 0,
                   ),
                 _CrazyMoneyChip(
                   label: 'VWAP',
