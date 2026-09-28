@@ -1045,6 +1045,15 @@ class _CrazyMoneyRow extends StatelessWidget {
                     label: 'LOT / SAAT',
                     value: '${candidate.sameClockLotRatio!.toStringAsFixed(1)}x',
                   ),
+                if (candidate.sameClockLotRatio != null &&
+                    candidate.sameClockLotRatio! >= 2.0)
+                  _CrazyMoneyChip(
+                    label: 'LOT TEYİDİ',
+                    value: aboveVwap && candidate.cmf > 0
+                        ? 'FİYAT + CMF'
+                        : 'TEYİTSİZ',
+                    positive: aboveVwap && candidate.cmf > 0,
+                  ),
                 _CrazyMoneyChip(
                   label: 'VWAP',
                   value: aboveVwap ? 'ÜSTÜ' : 'ALTI',
