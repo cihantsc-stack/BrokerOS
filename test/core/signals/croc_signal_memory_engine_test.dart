@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:broker_os/core/signals/croc_signal_memory_engine.dart';
+import 'package:mobile/core/signals/croc_signal_memory_engine.dart';
 
 void main() {
   final start = DateTime.utc(2026, 9, 28, 10);
