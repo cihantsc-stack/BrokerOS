@@ -89,23 +89,38 @@ class CrocSignalMemoryEngine {
       CrocSignalHorizon.sessionClose => null,
     };
 
-    final eligible = observations.where((o) {
+    final valid = observations.where((o) {
       if (!o.observedAt.isAfter(signal.createdAt)) return false;
-      if (end != null && o.observedAt.isAfter(end)) return false;
       if (!o.high.isFinite || !o.low.isFinite || !o.close.isFinite) {
         return false;
       }
-      return o.low > 0 && o.high >= o.low &&
-          o.close >= o.low && o.close <= o.high;
+      return o.low > 0 &&
+          o.high >= o.low &&
+          o.close >= o.low &&
+          o.close <= o.high;
     }).toList()
       ..sort((a, b) => a.observedAt.compareTo(b.observedAt));
 
-    if (eligible.isEmpty) return null;
-    if (end != null && eligible.last.observedAt.isBefore(end)) {
-      // No observation at the horizon: do not pretend an earlier quote
-      // is the 5m/15m/1h result.
-      return null;
+    if (valid.isEmpty) return null;
+
+    // Sparse scanner observations rarely land on the exact horizon.
+    // Select the first observation at/after the cutoff, with a maximum
+    // 5-minute delay. Never use a pre-horizon quote as the final result.
+    final CrocSignalObservation last;
+    if (end == null) {
+      last = valid.last;
+    } else {
+      final candidates = valid.where(
+        (o) =>
+            !o.observedAt.isBefore(end) &&
+            !o.observedAt.isAfter(end.add(const Duration(minutes: 5))),
+      );
+      if (candidates.isEmpty) return null;
+      last = candidates.first;
     }
+    final eligible = valid
+        .where((o) => !o.observedAt.isAfter(last.observedAt))
+        .toList();
 
     final peak = eligible.map((o) => o.high).reduce(
       (a, b) => a > b ? a : b,
@@ -113,7 +128,6 @@ class CrocSignalMemoryEngine {
     final trough = eligible.map((o) => o.low).reduce(
       (a, b) => a < b ? a : b,
     );
-    final last = eligible.last;
     final base = signal.entryPrice;
 
     return CrocSignalOutcome(
