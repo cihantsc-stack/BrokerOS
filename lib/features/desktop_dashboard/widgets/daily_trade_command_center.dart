@@ -1024,6 +1024,15 @@ class _CrazyMoneyRow extends StatelessWidget {
               spacing: 5,
               runSpacing: 5,
               children: [
+                if (DailyTradeScannerService.instance
+                        .crazyMoneyFirstSeen(candidate.symbol) != null)
+                  _CrazyMoneyChip(
+                    label: 'İLK GÖRÜLME',
+                    value: TimeOfDay.fromDateTime(
+                      DailyTradeScannerService.instance
+                          .crazyMoneyFirstSeen(candidate.symbol)!,
+                    ).format(context),
+                  ),
                 _CrazyMoneyChip(
                   label: 'PARA',
                   value: '${candidate.moneyScore}',
