@@ -17,6 +17,10 @@ class CrazyMoneyCandidate {
   /// Intraday para/hacim verileri.
   final double volumeRatio;
   final double volume15Ratio;
+
+  /// Same-clock historical lot benchmark; null when unavailable.
+  final double? sameClockLotRatio;
+  final int sameClockReferenceSessions;
   final double tlVolume;
   final double cmf;
   final double vwap;
@@ -45,6 +49,8 @@ class CrazyMoneyCandidate {
     required this.overboughtScore,
     required this.volumeRatio,
     required this.volume15Ratio,
+    this.sameClockLotRatio,
+    this.sameClockReferenceSessions = 0,
     required this.tlVolume,
     required this.cmf,
     required this.vwap,
