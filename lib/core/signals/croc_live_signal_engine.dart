@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../data_foundation/market/historical_candle.dart';
+import 'croc_lot_anomaly_engine.dart';
 
 enum CrocLiveSignalType {
   seriousMoneyInflow,
@@ -245,6 +246,9 @@ class CrocLiveSignalEngine {
     // 5 dakika hacim anomalisi
     final volumeRatio = _volumeRatio(analysisCandles, 20);
 
+    // Ayrı veri katmanı: aynı saat dilimindeki geçmiş seansların LOT normali.
+    final lotAnomaly = const CrocLotAnomalyEngine().evaluate(analysisCandles);
+
     // Yaklasik 15 dakika hacim teyidi
     final volume15Ratio = _volume15Ratio(candles, targetIndex);
 
@@ -349,6 +353,7 @@ class CrocLiveSignalEngine {
       volumeRatio: volumeRatio,
       volume15Ratio: volume15Ratio,
       tlVolume: tlVolume,
+      lotAnomaly: lotAnomaly,
       memoryScore: memoryScore,
       memory30MaxRatio: memory30MaxRatio,
       memory60MaxRatio: memory60MaxRatio,
@@ -877,6 +882,7 @@ class _BollingerResult {
 }
 
 class CrocLiveDiagnostic {
+  final CrocLotAnomaly? lotAnomaly;
   final double price;
   final int moneyScore;
   final int overboughtScore;
@@ -902,6 +908,7 @@ class CrocLiveDiagnostic {
   final double bollingerLower;
 
   const CrocLiveDiagnostic({
+    this.lotAnomaly,
     required this.price,
     required this.moneyScore,
     required this.overboughtScore,
