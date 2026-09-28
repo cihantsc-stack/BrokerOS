@@ -102,4 +102,39 @@ void main() {
     expect(result.evidence, CrocInstitutionalEvidence.unavailable);
   });
 
+  test('verified broker rows aggregate and sort by net lots', () {
+    final report = const CrocParticipantFlowAggregator().aggregate(
+      source: CrocInstitutionalSource(
+        provider: 'TEST_FEED',
+        observedAt: DateTime.utc(2026, 9, 28, 12),
+        authenticated: true,
+      ),
+      rows: const [
+        CrocParticipantFlow(participant: 'A', buyLots: 100, sellLots: 40),
+        CrocParticipantFlow(participant: 'B', buyLots: 10, sellLots: 90),
+      ],
+      asOf: DateTime.utc(2026, 9, 28, 13),
+    );
+    expect(report, isNotNull);
+    expect(report!.netLots, -20);
+    expect(report.participants.first.participant, 'A');
+    expect(report.participants.last.netLots, -80);
+  });
+
+  test('duplicate participant identifiers invalidate a report', () {
+    final report = const CrocParticipantFlowAggregator().aggregate(
+      source: CrocInstitutionalSource(
+        provider: 'TEST_FEED',
+        observedAt: DateTime.utc(2026, 9, 28, 12),
+        authenticated: true,
+      ),
+      rows: const [
+        CrocParticipantFlow(participant: 'A', buyLots: 100, sellLots: 40),
+        CrocParticipantFlow(participant: ' a ', buyLots: 10, sellLots: 90),
+      ],
+      asOf: DateTime.utc(2026, 9, 28, 13),
+    );
+    expect(report, isNull);
+  });
+
 }
