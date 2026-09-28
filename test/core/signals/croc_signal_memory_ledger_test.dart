@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/core/signals/croc_signal_memory_engine.dart';
+import 'package:mobile/core/signals/croc_signal_exit_tracker.dart';
 import 'package:mobile/core/signals/croc_signal_memory_ledger.dart';
 
 void main() {
@@ -57,4 +58,25 @@ void main() {
     expect(after?.targetTouched, isFalse);
     expect(ledger.outcome(signal().id, CrocSignalHorizon.minutes15)?.targetTouched, isTrue);
   });
+  test('ledger exposes first stop without turning later target into success', () {
+    final ledger = CrocSignalMemoryLedger();
+    expect(ledger.firstExit('unknown'), isNull);
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(5, 101, 96, 98));
+    ledger.recordObservation(signal().id, point(15, 110, 99, 108));
+    final exit = ledger.firstExit(signal().id);
+    expect(exit?.type, CrocSignalExitType.stop);
+    expect(exit?.level, 97);
+  });
+
+  test('ledger reports ambiguous when target and stop share a bar', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(5, 106, 96, 100));
+    expect(
+      ledger.firstExit(signal().id)?.type,
+      CrocSignalExitType.ambiguous,
+    );
+  });
+
 }
