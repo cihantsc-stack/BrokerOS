@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/bist/database/bist_index_membership.dart';
 
 import '../../../core/bist/models/sector_strength.dart';
+import '../../../core/signals/croc_signal_memory_engine.dart';
 import '../../stock_detail/screens/stock_detail_screen.dart';
 import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
@@ -1032,6 +1033,36 @@ class _CrazyMoneyRow extends StatelessWidget {
                       DailyTradeScannerService.instance
                           .crazyMoneyFirstSeen(candidate.symbol)!,
                     ).format(context),
+                  ),
+                if (DailyTradeScannerService.instance.crazyMoneyOutcome(
+                      candidate.symbol,
+                      CrocSignalHorizon.minutes5,
+                    ) != null)
+                  _CrazyMoneyChip(
+                    label: 'İLK +5DK',
+                    value: '${DailyTradeScannerService.instance.crazyMoneyOutcome(
+                      candidate.symbol,
+                      CrocSignalHorizon.minutes5,
+                    )!.returnPercent.toStringAsFixed(2)}%',
+                    positive: DailyTradeScannerService.instance.crazyMoneyOutcome(
+                      candidate.symbol,
+                      CrocSignalHorizon.minutes5,
+                    )!.returnPercent >= 0,
+                  ),
+                if (DailyTradeScannerService.instance.crazyMoneyOutcome(
+                      candidate.symbol,
+                      CrocSignalHorizon.minutes15,
+                    ) != null)
+                  _CrazyMoneyChip(
+                    label: 'İLK +15DK',
+                    value: '${DailyTradeScannerService.instance.crazyMoneyOutcome(
+                      candidate.symbol,
+                      CrocSignalHorizon.minutes15,
+                    )!.returnPercent.toStringAsFixed(2)}%',
+                    positive: DailyTradeScannerService.instance.crazyMoneyOutcome(
+                      candidate.symbol,
+                      CrocSignalHorizon.minutes15,
+                    )!.returnPercent >= 0,
                   ),
                 _CrazyMoneyChip(
                   label: 'PARA',
