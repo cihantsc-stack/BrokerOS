@@ -20,6 +20,19 @@ class CrocInstitutionalStrength {
   });
 }
 
+/// Provider metadata supplied by a trusted adapter, never from a price feed.
+class CrocInstitutionalSource {
+  final String provider;
+  final DateTime observedAt;
+  final bool authenticated;
+
+  const CrocInstitutionalSource({
+    required this.provider,
+    required this.observedAt,
+    required this.authenticated,
+  });
+}
+
 class CrocInstitutionalStrengthEngine {
   const CrocInstitutionalStrengthEngine();
 
@@ -30,9 +43,18 @@ class CrocInstitutionalStrengthEngine {
     required double? volumeRatio,
     double? verifiedBuyLots,
     double? verifiedSellLots,
-    bool participantDataVerified = false,
+    CrocInstitutionalSource? participantSource,
+    DateTime? asOf,
   }) {
-    if (participantDataVerified &&
+    final evaluationTime = asOf ?? DateTime.now();
+    final sourceIsValid = participantSource != null &&
+        participantSource.authenticated &&
+        participantSource.provider.trim().isNotEmpty &&
+        !participantSource.observedAt.isAfter(evaluationTime) &&
+        evaluationTime.difference(participantSource.observedAt) <=
+            const Duration(days: 1);
+
+    if (sourceIsValid &&
         verifiedBuyLots != null &&
         verifiedSellLots != null &&
         verifiedBuyLots.isFinite &&
@@ -47,8 +69,8 @@ class CrocInstitutionalStrengthEngine {
             : net < 0
                 ? 'DOĞRULANMIŞ NET SATIM'
                 : 'DOĞRULANMIŞ DENGE',
-        explanation: 'Kaynağı doğrulanmış katılımcı işlem verisi. '
-            'Tek başına yatırım kararı değildir.',
+        explanation: 'Doğrulanmış kaynak: ${participantSource!.provider}. '
+            'Güncel katılımcı işlem verisi; tek başına yatırım kararı değildir.',
         verifiedNetLots: net,
       );
     }
