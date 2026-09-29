@@ -51,7 +51,14 @@ class DailyTradeScannerService {
     return seenAt;
   }
 
-  int get crazyMoneyMemoryCount => _signalMemory.signalCount;
+  // Count only signals first observed today, not prior days in this session.
+  int get crazyMoneyMemoryCount {
+    final today = DateTime.now();
+    return _firstSeenBySymbol.values.where((seenAt) =>
+        seenAt.year == today.year &&
+        seenAt.month == today.month &&
+        seenAt.day == today.day).length;
+  }
 
   CrocSignalDecisionView? crazyMoneyDecision(String symbol) {
     final normalized = symbol.trim().toUpperCase();
