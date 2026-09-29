@@ -79,4 +79,23 @@ void main() {
     );
   });
 
+  test('does not infer a 5-minute result from a 4-minute quote', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(4, 104, 104, 104));
+    expect(ledger.outcome(signal().id, CrocSignalHorizon.minutes5), isNull);
+    ledger.recordObservation(signal().id, point(7, 103, 103, 103));
+    expect(
+      ledger.outcome(signal().id, CrocSignalHorizon.minutes5)?.returnPercent,
+      closeTo(3, 0.0001),
+    );
+  });
+
+  test('does not substitute a quote outside the 5-minute grace window', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(11, 105, 105, 105));
+    expect(ledger.outcome(signal().id, CrocSignalHorizon.minutes5), isNull);
+  });
+
 }
