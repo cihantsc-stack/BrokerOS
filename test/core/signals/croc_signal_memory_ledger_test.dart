@@ -183,4 +183,24 @@ void main() {
     expect(close?.returnPercent, closeTo(2, 0.0001));
   });
 
+  test('invalid planning levels cannot register false target or stop hits', () {
+    final ledger = CrocSignalMemoryLedger();
+    const id = 'AKBNK-INVALID-LEVELS';
+    ledger.recordSignal(CrocSignalSnapshot(
+      id: id,
+      symbol: 'AKBNK',
+      engine: 'CRAZY_MONEY',
+      createdAt: start,
+      entryPrice: 100,
+      score: 75,
+      targetPrice: 95,
+      stopPrice: 105,
+    ));
+    ledger.recordObservation(id, point(5, 101, 99, 100));
+    final outcome = ledger.outcome(id, CrocSignalHorizon.minutes5);
+    expect(outcome, isNotNull);
+    expect(outcome!.targetTouched, isFalse);
+    expect(outcome.stopTouched, isFalse);
+  });
+
 }
