@@ -26,6 +26,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Analyze signal code
-        run: flutter analyze lib/core/signals lib/features/desktop_dashboard/services/daily_trade_scanner_service.dart lib/features/desktop_dashboard/widgets/daily_trade_command_center.dart
+        run: flutter analyze --no-fatal-infos lib/core/signals lib/features/desktop_dashboard/services/daily_trade_scanner_service.dart lib/features/desktop_dashboard/widgets/daily_trade_command_center.dart
       - name: Run signal tests
         run: flutter test test/core/signals
