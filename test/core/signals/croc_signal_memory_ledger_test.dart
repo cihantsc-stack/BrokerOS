@@ -98,4 +98,33 @@ void main() {
     expect(ledger.outcome(signal().id, CrocSignalHorizon.minutes5), isNull);
   });
 
+  test('15 and 60 minute horizons require their own later samples', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(5, 101, 101, 101));
+    expect(ledger.outcome(signal().id, CrocSignalHorizon.minutes15), isNull);
+    expect(ledger.outcome(signal().id, CrocSignalHorizon.hour1), isNull);
+    ledger.recordObservation(signal().id, point(16, 102, 102, 102));
+    expect(
+      ledger.outcome(signal().id, CrocSignalHorizon.minutes15)?.returnPercent,
+      closeTo(2, 0.0001),
+    );
+    expect(ledger.outcome(signal().id, CrocSignalHorizon.hour1), isNull);
+    ledger.recordObservation(signal().id, point(61, 104, 104, 104));
+    expect(
+      ledger.outcome(signal().id, CrocSignalHorizon.hour1)?.returnPercent,
+      closeTo(4, 0.0001),
+    );
+  });
+
+  test('session-close result is absent without close confirmation', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(60, 103, 103, 103));
+    expect(
+      ledger.outcome(signal().id, CrocSignalHorizon.sessionClose),
+      isNull,
+    );
+  });
+
 }
