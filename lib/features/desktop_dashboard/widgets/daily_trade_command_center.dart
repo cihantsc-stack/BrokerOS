@@ -1040,9 +1040,10 @@ class _CrazyMoneyRow extends StatelessWidget {
                     final fifteen = decision?.minutes15;
                     final hour = decision?.hour1;
                     return Tooltip(
-                      message: 'Hafıza yalnızca sonraki taramalarda da aday kalan '
-                          'hisselerden fiyat gözlemi alır. Sonuçlar '
-                          'gerçekleşmiş işlem veya mum verisi değildir.',
+                      message: 'Hafıza sonraki taramalarda teknik verisi bulunan '
+                          'hisselerin fiyat gözlemlerini izler; adaylıktan '
+                          'çıksa da takip sürer. Sonuçlar gerçekleşmiş '
+                          'işlem veya OHLC mum verisi değildir.',
                       child: Wrap(
                         spacing: 5,
                         runSpacing: 5,
