@@ -1066,6 +1066,47 @@ class _CrazyMoneyRow extends StatelessWidget {
                       CrocSignalHorizon.minutes15,
                     )!.returnPercent >= 0,
                   ),
+                Builder(
+                  builder: (context) {
+                    final decision = DailyTradeScannerService.instance
+                        .crazyMoneyDecision(candidate.symbol);
+                    if (decision == null) {
+                      return const SizedBox.shrink();
+                    }
+                    final hour = decision.hour1;
+                    return Wrap(
+                      spacing: 5,
+                      runSpacing: 5,
+                      children: [
+                        if (decision.riskPercent != null)
+                          _CrazyMoneyChip(
+                            label: 'STOP RİSKİ',
+                            value:
+                                '%${decision.riskPercent!.toStringAsFixed(2)}',
+                          ),
+                        if (decision.rewardPercent != null)
+                          _CrazyMoneyChip(
+                            label: 'HEDEF GETİRİ',
+                            value:
+                                '%${decision.rewardPercent!.toStringAsFixed(2)}',
+                          ),
+                        if (decision.rewardRiskRatio != null)
+                          _CrazyMoneyChip(
+                            label: 'GETİRİ/RİSK',
+                            value:
+                                '${decision.rewardRiskRatio!.toStringAsFixed(2)}x',
+                          ),
+                        if (hour != null)
+                          _CrazyMoneyChip(
+                            label: 'İLK +60DK',
+                            value:
+                                '${hour.returnPercent.toStringAsFixed(2)}%',
+                            positive: hour.returnPercent >= 0,
+                          ),
+                      ],
+                    );
+                  },
+                ),
                 _CrazyMoneyChip(
                   label: 'PARA',
                   value: '${candidate.moneyScore}',
