@@ -28,6 +28,29 @@ void main() {
     );
   });
 
+  test('summarizes historical broker totals and net leaders', () {
+    expect(
+      archive.importNormalizedCsv(
+        symbol: 'THYAO',
+        tradingDate: date,
+        csv: csv,
+      ),
+      isTrue,
+    );
+    final result = archive.summary('thyao', date);
+    expect(result, isNotNull);
+    expect(result!.participantCount, 2);
+    expect(result.totalBuyLots, 120);
+    expect(result.totalSellLots, 90);
+    expect(result.netLots, 30);
+    expect(result.topNetBuyer?.participant, 'A');
+    expect(result.topNetSeller?.participant, 'B');
+    expect(
+      archive.summary('THYAO', date.add(const Duration(days: 1))),
+      isNull,
+    );
+  });
+
   test('historical import does not produce a live verified AKD report', () {
     expect(
       archive.importNormalizedCsv(
