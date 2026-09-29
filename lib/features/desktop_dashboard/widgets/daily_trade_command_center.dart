@@ -7,6 +7,7 @@ import '../../../core/bist/database/bist_index_membership.dart';
 import '../../../core/bist/models/sector_strength.dart';
 import '../../../core/signals/croc_signal_memory_engine.dart';
 import '../../../core/signals/croc_institutional_strength_engine.dart';
+import '../../../core/signals/croc_institutional_flow_store.dart';
 import '../../stock_detail/screens/stock_detail_screen.dart';
 import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
@@ -1107,26 +1108,34 @@ class _CrazyMoneyRow extends StatelessWidget {
                   value: candidate.cmf.toStringAsFixed(2),
                   positive: candidate.cmf > 0,
                 ),
-                Tooltip(
-                  message: const CrocInstitutionalStrengthEngine()
-                      .evaluate(
-                        cmf: candidate.cmf,
-                        vwap: candidate.vwap,
-                        price: candidate.livePrice,
-                        volumeRatio: candidate.volumeRatio,
-                      )
-                      .explanation,
-                  child: _CrazyMoneyChip(
-                    label: 'TEKNİK AKIŞ',
-                    value: const CrocInstitutionalStrengthEngine()
+                Builder(
+                  builder: (context) {
+                    final verified = CrocInstitutionalFlowStore.instance
+                        .report(candidate.symbol);
+                    final technical = const CrocInstitutionalStrengthEngine()
                         .evaluate(
                           cmf: candidate.cmf,
                           vwap: candidate.vwap,
                           price: candidate.livePrice,
                           volumeRatio: candidate.volumeRatio,
-                        )
-                        .label,
-                  ),
+                        );
+                    return Tooltip(
+                      message: verified == null
+                          ? technical.explanation
+                          : 'Kaynak: ${verified.source.provider}. '
+                              'Aracı kurum işlem neti; kurumsal yatırımcı '
+                              'kimliğini tek başına kanıtlamaz.',
+                      child: _CrazyMoneyChip(
+                        label: verified == null ? 'TEKNİK AKIŞ' : 'AKD NET LOT',
+                        value: verified == null
+                            ? technical.label
+                            : verified.netLots.toStringAsFixed(0),
+                        positive: verified == null
+                            ? null
+                            : verified.netLots >= 0,
+                      ),
+                    );
+                  },
                 ),
                 _CrazyMoneyChip(
                   label: 'RSI',
