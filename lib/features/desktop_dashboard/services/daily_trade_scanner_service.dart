@@ -9,6 +9,7 @@ import '../../../core/data_foundation/market/yahoo_bist_market_data_source.dart'
 import '../../../core/signals/croc_live_signal_engine.dart';
 import '../../../core/signals/croc_signal_memory_engine.dart';
 import '../../../core/signals/croc_signal_memory_ledger.dart';
+import '../../../core/signals/croc_signal_decision_bridge.dart';
 import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
 import 'global_pulse_service.dart';
@@ -41,6 +42,22 @@ class DailyTradeScannerService {
       _firstSeenBySymbol[symbol.toUpperCase()];
 
   int get crazyMoneyMemoryCount => _signalMemory.signalCount;
+
+  CrocSignalDecisionView? crazyMoneyDecision(String symbol) {
+    final normalized = symbol.trim().toUpperCase();
+    final seenAt = _firstSeenBySymbol[normalized];
+    if (seenAt == null) return null;
+    final day = [
+      seenAt.year.toString().padLeft(4, '0'),
+      seenAt.month.toString().padLeft(2, '0'),
+      seenAt.day.toString().padLeft(2, '0'),
+    ].join('-');
+    return const CrocSignalDecisionBridge().inspect(
+      _signalMemory,
+      [normalized, day, 'CRAZY'].join('-'),
+    );
+  }
+
 
   CrocSignalOutcome? crazyMoneyOutcome(
     String symbol,
