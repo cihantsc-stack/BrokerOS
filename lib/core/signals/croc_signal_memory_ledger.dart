@@ -14,6 +14,19 @@ class CrocSignalMemoryLedger {
 
   int get signalCount => _signals.length;
 
+  /// Removes expired signal snapshots and their observations.
+  int pruneBefore(DateTime cutoff) {
+    final expiredIds = _signals.entries
+        .where((entry) => entry.value.createdAt.isBefore(cutoff))
+        .map((entry) => entry.key)
+        .toList();
+    for (final id in expiredIds) {
+      _signals.remove(id);
+      _observations.remove(id);
+    }
+    return expiredIds.length;
+  }
+
   bool recordSignal(CrocSignalSnapshot signal) {
     if (signal.id.isEmpty ||
         signal.symbol.isEmpty ||
