@@ -1054,6 +1054,12 @@ class _CrazyMoneyRow extends StatelessWidget {
                               value: TimeOfDay.fromDateTime(firstSeen)
                                   .format(context),
                             ),
+                          if (decision != null)
+                            _CrazyMoneyChip(
+                              label: 'İLK FİYAT',
+                              value:
+                                  '₺${decision.signal.entryPrice.toStringAsFixed(2)}',
+                            ),
                           if (five != null)
                             _CrazyMoneyChip(
                               label: 'İLK +5DK',
