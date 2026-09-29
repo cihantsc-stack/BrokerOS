@@ -100,15 +100,26 @@ class DailyTradeScannerService {
 
   Future<List<DailyTradeCandidate>>? _inFlightScan;
 
+  bool _hasFreshScanCache() {
+    final cachedAt = _cacheTime;
+    if (_cache == null || cachedAt == null) return false;
+    final now = DateTime.now();
+    // Never carry yesterday's candidate list into today's session.
+    if (cachedAt.year != now.year ||
+        cachedAt.month != now.month ||
+        cachedAt.day != now.day) {
+      return false;
+    }
+    final age = now.difference(cachedAt);
+    return !age.isNegative && age < const Duration(minutes: 5);
+  }
+
   Future<List<DailyTradeCandidate>> scan({
     bool forceRefresh = false,
     int concurrency = 15,
   }) {
     // Gecerli cache varsa tekrar tarama yapma.
-    if (!forceRefresh &&
-        _cache != null &&
-        _cacheTime != null &&
-        DateTime.now().difference(_cacheTime!) < const Duration(minutes: 5)) {
+    if (!forceRefresh && _hasFreshScanCache()) {
       return Future.value(_cache!);
     }
 
@@ -126,11 +137,16 @@ class DailyTradeScannerService {
 
     _inFlightScan = future;
 
-    future.whenComplete(() {
-      if (identical(_inFlightScan, future)) {
-        _inFlightScan = null;
-      }
-    });
+    // Cleanup must also handle failures without creating an unhandled
+    // secondary Future from whenComplete.
+    future.then(
+      (_) {
+        if (identical(_inFlightScan, future)) _inFlightScan = null;
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (identical(_inFlightScan, future)) _inFlightScan = null;
+      },
+    );
 
     return future;
   }
@@ -141,10 +157,7 @@ class DailyTradeScannerService {
   }) async {
     // CROC TIMING V3
     final scanWatch = Stopwatch()..start();
-    if (!forceRefresh &&
-        _cache != null &&
-        _cacheTime != null &&
-        DateTime.now().difference(_cacheTime!) < const Duration(minutes: 5)) {
+    if (!forceRefresh && _hasFreshScanCache()) {
       return _cache!;
     }
 
