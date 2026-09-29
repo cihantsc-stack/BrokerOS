@@ -203,4 +203,44 @@ void main() {
     expect(outcome.stopTouched, isFalse);
   });
 
+  test('non-finite prices are rejected without corrupting memory', () {
+    final ledger = CrocSignalMemoryLedger();
+    expect(ledger.recordSignal(signal(id: 'BAD-PRICE')), isTrue);
+    expect(
+      ledger.recordObservation(
+        'BAD-PRICE',
+        point(5, double.nan, 99, 100),
+      ),
+      isFalse,
+    );
+    expect(
+      ledger.recordObservation(
+        'BAD-PRICE',
+        point(5, double.infinity, 99, 100),
+      ),
+      isFalse,
+    );
+    expect(ledger.outcome('BAD-PRICE', CrocSignalHorizon.minutes5), isNull);
+    expect(
+      ledger.recordObservation('BAD-PRICE', point(5, 102, 99, 101)),
+      isTrue,
+    );
+    expect(
+      ledger.outcome('BAD-PRICE', CrocSignalHorizon.minutes5)?.returnPercent,
+      closeTo(1, 0.0001),
+    );
+  });
+
+  test('different signal IDs maintain independent observations', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal(id: 'A'));
+    ledger.recordSignal(signal(id: 'B'));
+    ledger.recordObservation('A', point(5, 102, 102, 102));
+    expect(ledger.outcome('B', CrocSignalHorizon.minutes5), isNull);
+    expect(
+      ledger.outcome('A', CrocSignalHorizon.minutes5)?.returnPercent,
+      closeTo(2, 0.0001),
+    );
+  });
+
 }
