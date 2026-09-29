@@ -1027,83 +1027,73 @@ class _CrazyMoneyRow extends StatelessWidget {
               spacing: 5,
               runSpacing: 5,
               children: [
-                if (DailyTradeScannerService.instance
-                        .crazyMoneyFirstSeen(candidate.symbol) != null)
-                  _CrazyMoneyChip(
-                    label: 'İLK GÖRÜLME',
-                    value: TimeOfDay.fromDateTime(
-                      DailyTradeScannerService.instance
-                          .crazyMoneyFirstSeen(candidate.symbol)!,
-                    ).format(context),
-                  ),
-                if (DailyTradeScannerService.instance.crazyMoneyOutcome(
-                      candidate.symbol,
-                      CrocSignalHorizon.minutes5,
-                    ) != null)
-                  _CrazyMoneyChip(
-                    label: 'İLK +5DK',
-                    value: '${DailyTradeScannerService.instance.crazyMoneyOutcome(
-                      candidate.symbol,
-                      CrocSignalHorizon.minutes5,
-                    )!.returnPercent.toStringAsFixed(2)}%',
-                    positive: DailyTradeScannerService.instance.crazyMoneyOutcome(
-                      candidate.symbol,
-                      CrocSignalHorizon.minutes5,
-                    )!.returnPercent >= 0,
-                  ),
-                if (DailyTradeScannerService.instance.crazyMoneyOutcome(
-                      candidate.symbol,
-                      CrocSignalHorizon.minutes15,
-                    ) != null)
-                  _CrazyMoneyChip(
-                    label: 'İLK +15DK',
-                    value: '${DailyTradeScannerService.instance.crazyMoneyOutcome(
-                      candidate.symbol,
-                      CrocSignalHorizon.minutes15,
-                    )!.returnPercent.toStringAsFixed(2)}%',
-                    positive: DailyTradeScannerService.instance.crazyMoneyOutcome(
-                      candidate.symbol,
-                      CrocSignalHorizon.minutes15,
-                    )!.returnPercent >= 0,
-                  ),
                 Builder(
                   builder: (context) {
-                    final decision = DailyTradeScannerService.instance
-                        .crazyMoneyDecision(candidate.symbol);
-                    if (decision == null) {
-                      return const SizedBox.shrink();
-                    }
-                    final hour = decision.hour1;
-                    return Wrap(
-                      spacing: 5,
-                      runSpacing: 5,
-                      children: [
-                        if (decision.riskPercent != null)
-                          _CrazyMoneyChip(
-                            label: 'STOP RİSKİ',
-                            value:
-                                '%${decision.riskPercent!.toStringAsFixed(2)}',
-                          ),
-                        if (decision.rewardPercent != null)
-                          _CrazyMoneyChip(
-                            label: 'HEDEF GETİRİ',
-                            value:
-                                '%${decision.rewardPercent!.toStringAsFixed(2)}',
-                          ),
-                        if (decision.rewardRiskRatio != null)
-                          _CrazyMoneyChip(
-                            label: 'GETİRİ/RİSK',
-                            value:
-                                '${decision.rewardRiskRatio!.toStringAsFixed(2)}x',
-                          ),
-                        if (hour != null)
-                          _CrazyMoneyChip(
-                            label: 'İLK +60DK',
-                            value:
-                                '${hour.returnPercent.toStringAsFixed(2)}%',
-                            positive: hour.returnPercent >= 0,
-                          ),
-                      ],
+                    final scanner = DailyTradeScannerService.instance;
+                    final firstSeen = scanner.crazyMoneyFirstSeen(
+                      candidate.symbol,
+                    );
+                    final decision = scanner.crazyMoneyDecision(
+                      candidate.symbol,
+                    );
+                    final five = decision?.minutes5;
+                    final fifteen = decision?.minutes15;
+                    final hour = decision?.hour1;
+                    return Tooltip(
+                      message: 'Hafıza sonuçları tarama anındaki fiyat '
+                          'gözlemlerinden hesaplanır; gerçekleşmiş işlem '
+                          'veya 1 dakikalık mum verisi değildir.',
+                      child: Wrap(
+                        spacing: 5,
+                        runSpacing: 5,
+                        children: [
+                          if (firstSeen != null)
+                            _CrazyMoneyChip(
+                              label: 'İLK GÖRÜLME',
+                              value: TimeOfDay.fromDateTime(firstSeen)
+                                  .format(context),
+                            ),
+                          if (five != null)
+                            _CrazyMoneyChip(
+                              label: 'İLK +5DK',
+                              value:
+                                  '${five.returnPercent.toStringAsFixed(2)}%',
+                              positive: five.returnPercent >= 0,
+                            ),
+                          if (fifteen != null)
+                            _CrazyMoneyChip(
+                              label: 'İLK +15DK',
+                              value:
+                                  '${fifteen.returnPercent.toStringAsFixed(2)}%',
+                              positive: fifteen.returnPercent >= 0,
+                            ),
+                          if (hour != null)
+                            _CrazyMoneyChip(
+                              label: 'İLK +60DK',
+                              value:
+                                  '${hour.returnPercent.toStringAsFixed(2)}%',
+                              positive: hour.returnPercent >= 0,
+                            ),
+                          if (decision?.riskPercent != null)
+                            _CrazyMoneyChip(
+                              label: 'STOP RİSKİ',
+                              value:
+                                  '%${decision!.riskPercent!.toStringAsFixed(2)}',
+                            ),
+                          if (decision?.rewardPercent != null)
+                            _CrazyMoneyChip(
+                              label: 'HEDEF GETİRİ',
+                              value:
+                                  '%${decision!.rewardPercent!.toStringAsFixed(2)}',
+                            ),
+                          if (decision?.rewardRiskRatio != null)
+                            _CrazyMoneyChip(
+                              label: 'GETİRİ/RİSK',
+                              value:
+                                  '${decision!.rewardRiskRatio!.toStringAsFixed(2)}x',
+                            ),
+                        ],
+                      ),
                     );
                   },
                 ),
