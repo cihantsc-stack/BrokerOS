@@ -1119,20 +1119,31 @@ class _CrazyMoneyRow extends StatelessWidget {
                           price: candidate.livePrice,
                           volumeRatio: candidate.volumeRatio,
                         );
+                    final buyer = verified?.topNetBuyer;
+                    final seller = verified?.topNetSeller;
                     return Tooltip(
                       message: verified == null
                           ? technical.explanation
                           : 'Kaynak: ${verified.source.provider}. '
-                              'Aracı kurum işlem neti; kurumsal yatırımcı '
-                              'kimliğini tek başına kanıtlamaz.',
+                              'En yüksek net alıcı: '
+                              '${buyer?.participant ?? "Yok"} '
+                              '(${buyer?.netLots.toStringAsFixed(0) ?? "0"} LOT). '
+                              'En yüksek net satıcı: '
+                              '${seller?.participant ?? "Yok"} '
+                              '(${seller?.netLots.toStringAsFixed(0) ?? "0"} LOT). '
+                              'Aracı kurum işlemleri yatırımcı kimliğini '
+                              'kanıtlamaz.',
                       child: _CrazyMoneyChip(
-                        label: verified == null ? 'TEKNİK AKIŞ' : 'AKD NET LOT',
+                        label: verified == null
+                            ? 'TEKNİK AKIŞ'
+                            : 'AKD EN NET ALICI',
                         value: verified == null
                             ? technical.label
-                            : verified.netLots.toStringAsFixed(0),
-                        positive: verified == null
-                            ? null
-                            : verified.netLots >= 0,
+                            : buyer == null
+                                ? 'NET ALICI YOK'
+                                : '${buyer.participant} '
+                                    '+${buyer.netLots.toStringAsFixed(0)}',
+                        positive: verified == null ? null : buyer != null,
                       ),
                     );
                   },
