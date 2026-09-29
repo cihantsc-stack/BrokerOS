@@ -66,4 +66,44 @@ void main() {
       isNull,
     );
   });
+  test('invalid target and stop levels never produce risk or reward', () {
+    ledger.recordSignal(CrocSignalSnapshot(
+      id: 'THYAO-INVALID',
+      symbol: 'THYAO',
+      engine: 'CRAZY',
+      createdAt: at,
+      entryPrice: 100,
+      score: 70,
+      targetPrice: 95,
+      stopPrice: 105,
+    ));
+    final view = const CrocSignalDecisionBridge().inspect(
+      ledger,
+      'THYAO-INVALID',
+    );
+    expect(view, isNotNull);
+    expect(view!.riskPercent, isNull);
+    expect(view.rewardPercent, isNull);
+    expect(view.rewardRiskRatio, isNull);
+  });
+
+  test('valid risk without target does not fabricate a reward ratio', () {
+    ledger.recordSignal(CrocSignalSnapshot(
+      id: 'THYAO-STOP-ONLY',
+      symbol: 'THYAO',
+      engine: 'CRAZY',
+      createdAt: at,
+      entryPrice: 100,
+      score: 70,
+      stopPrice: 98,
+    ));
+    final view = const CrocSignalDecisionBridge().inspect(
+      ledger,
+      'THYAO-STOP-ONLY',
+    );
+    expect(view!.riskPercent, closeTo(2, 0.0001));
+    expect(view.rewardPercent, isNull);
+    expect(view.rewardRiskRatio, isNull);
+  });
+
 }
