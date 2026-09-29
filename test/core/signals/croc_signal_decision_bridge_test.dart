@@ -106,4 +106,32 @@ void main() {
     expect(view.rewardRiskRatio, isNull);
   });
 
+  test('a later quote cannot fill missing earlier decision horizons', () {
+    const id = 'THYAO-SPARSE';
+    ledger.recordSignal(CrocSignalSnapshot(
+      id: id,
+      symbol: 'THYAO',
+      engine: 'CRAZY',
+      createdAt: at,
+      entryPrice: 100,
+      score: 70,
+    ));
+    ledger.recordObservation(
+      id,
+      CrocSignalObservation(
+        observedAt: at.add(const Duration(minutes: 16)),
+        high: 104,
+        low: 104,
+        close: 104,
+      ),
+    );
+    final view = const CrocSignalDecisionBridge().inspect(ledger, id);
+    expect(view, isNotNull);
+    expect(view!.minutes5, isNull);
+    expect(view.minutes15?.returnPercent, closeTo(4, 0.0001));
+    expect(view.hour1, isNull);
+    expect(view.riskPercent, isNull);
+    expect(view.rewardRiskRatio, isNull);
+  });
+
 }
