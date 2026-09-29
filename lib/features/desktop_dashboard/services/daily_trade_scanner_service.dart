@@ -653,6 +653,35 @@ class DailyTradeScannerService {
       }
     }
 
+    // Keep observing today's recorded signals even after they drop below
+    // the CRAZY candidate threshold. These are scanner price samples,
+    // never OHLC bars or executed trades.
+    final activeSymbols = crazyMoneyResults
+        .map((candidate) => candidate.symbol.toUpperCase())
+        .toSet();
+    for (final diagnostic in crazyMoneyDiagnostics) {
+      final symbol = diagnostic.symbol.toUpperCase();
+      if (activeSymbols.contains(symbol)) continue;
+      final firstSeen = crazyMoneyFirstSeen(symbol);
+      if (firstSeen == null ||
+          !diagnostic.livePrice.isFinite ||
+          diagnostic.livePrice <= 0) {
+        continue;
+      }
+      final day = '${firstSeen.year.toString().padLeft(4, '0')}-'
+          '${firstSeen.month.toString().padLeft(2, '0')}-'
+          '${firstSeen.day.toString().padLeft(2, '0')}';
+      _signalMemory.recordObservation(
+        '$symbol-$day-CRAZY',
+        CrocSignalObservation(
+          observedAt: seenAt,
+          high: diagnostic.livePrice,
+          low: diagnostic.livePrice,
+          close: diagnostic.livePrice,
+        ),
+      );
+    }
+
     _latestCrazyMoneyCandidates = List<CrazyMoneyCandidate>.unmodifiable(
       crazyMoneyResults,
     );
