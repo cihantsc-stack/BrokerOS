@@ -38,14 +38,24 @@ class DailyTradeScannerService {
   final CrocSignalMemoryLedger _signalMemory = CrocSignalMemoryLedger();
   final Map<String, DateTime> _firstSeenBySymbol = {};
 
-  DateTime? crazyMoneyFirstSeen(String symbol) =>
-      _firstSeenBySymbol[symbol.toUpperCase()];
+  // Do not show yesterday's session snapshot as today's live signal.
+  DateTime? crazyMoneyFirstSeen(String symbol) {
+    final seenAt = _firstSeenBySymbol[symbol.trim().toUpperCase()];
+    if (seenAt == null) return null;
+    final today = DateTime.now();
+    if (seenAt.year != today.year ||
+        seenAt.month != today.month ||
+        seenAt.day != today.day) {
+      return null;
+    }
+    return seenAt;
+  }
 
   int get crazyMoneyMemoryCount => _signalMemory.signalCount;
 
   CrocSignalDecisionView? crazyMoneyDecision(String symbol) {
     final normalized = symbol.trim().toUpperCase();
-    final seenAt = _firstSeenBySymbol[normalized];
+    final seenAt = crazyMoneyFirstSeen(normalized);
     if (seenAt == null) return null;
     final day = [
       seenAt.year.toString().padLeft(4, '0'),
@@ -58,22 +68,19 @@ class DailyTradeScannerService {
     );
   }
 
-
   CrocSignalOutcome? crazyMoneyOutcome(
     String symbol,
     CrocSignalHorizon horizon,
   ) {
-    final seenAt = _firstSeenBySymbol[symbol.toUpperCase()];
-    if (seenAt == null) return null;
-    final day = '${seenAt.year.toString().padLeft(4, '0')}-'
-        '${seenAt.month.toString().padLeft(2, '0')}-'
-        '${seenAt.day.toString().padLeft(2, '0')}';
-    return _signalMemory.outcome(
-      '${symbol.toUpperCase()}-$day-CRAZY',
-      horizon,
-    );
+    final decision = crazyMoneyDecision(symbol);
+    if (decision == null) return null;
+    return switch (horizon) {
+      CrocSignalHorizon.minutes5 => decision.minutes5,
+      CrocSignalHorizon.minutes15 => decision.minutes15,
+      CrocSignalHorizon.hour1 => decision.hour1,
+      CrocSignalHorizon.sessionClose => null,
+    };
   }
-
 
   List<CrazyMoneyCandidate> _latestCrazyMoneyCandidates = const [];
 
