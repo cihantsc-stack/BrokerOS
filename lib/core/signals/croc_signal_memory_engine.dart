@@ -91,6 +91,14 @@ class CrocSignalMemoryEngine {
 
     final valid = observations.where((o) {
       if (!o.observedAt.isAfter(signal.createdAt)) return false;
+      // A confirmed close belongs to the signal's own calendar session.
+      // Never let a later day's scanner sample become yesterday's close.
+      if (horizon == CrocSignalHorizon.sessionClose &&
+          (o.observedAt.year != signal.createdAt.year ||
+              o.observedAt.month != signal.createdAt.month ||
+              o.observedAt.day != signal.createdAt.day)) {
+        return false;
+      }
       if (!o.high.isFinite || !o.low.isFinite || !o.close.isFinite) {
         return false;
       }
