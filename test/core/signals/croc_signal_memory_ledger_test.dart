@@ -150,4 +150,37 @@ void main() {
     );
   });
 
+  test('confirmed session close uses the latest valid observed quote', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(60, 103, 103, 103));
+    ledger.recordObservation(signal().id, point(120, 107, 107, 107));
+    final close = ledger.outcome(
+      signal().id,
+      CrocSignalHorizon.sessionClose,
+      sessionClosed: true,
+    );
+    expect(close?.evaluatedAt, start.add(const Duration(minutes: 120)));
+    expect(close?.returnPercent, closeTo(7, 0.0001));
+  });
+
+  test('duplicate observations cannot revise the recorded close', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    expect(
+      ledger.recordObservation(signal().id, point(120, 102, 102, 102)),
+      isTrue,
+    );
+    expect(
+      ledger.recordObservation(signal().id, point(120, 110, 110, 110)),
+      isFalse,
+    );
+    final close = ledger.outcome(
+      signal().id,
+      CrocSignalHorizon.sessionClose,
+      sessionClosed: true,
+    );
+    expect(close?.returnPercent, closeTo(2, 0.0001));
+  });
+
 }
