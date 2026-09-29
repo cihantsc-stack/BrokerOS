@@ -51,4 +51,44 @@ void main() {
     expect(result.type, CrocSignalExitType.target);
     expect(result.level, 105);
   });
+  test('invalid long-side target or stop cannot produce a trade exit', () {
+    final invalid = CrocSignalSnapshot(
+      id: 'INVALID',
+      symbol: 'TEST',
+      engine: 'CROC',
+      createdAt: time,
+      entryPrice: 100,
+      score: 70,
+      targetPrice: 95,
+      stopPrice: 105,
+    );
+    final result = tracker.evaluate(invalid, [bar(5, 110, 90, 100)]);
+    expect(result.type, CrocSignalExitType.open);
+    expect(result.occurredAt, isNull);
+  });
+
+  test('no target or stop never fabricates an exit', () {
+    final missing = CrocSignalSnapshot(
+      id: 'MISSING',
+      symbol: 'TEST',
+      engine: 'CROC',
+      createdAt: time,
+      entryPrice: 100,
+      score: 70,
+    );
+    expect(
+      tracker.evaluate(missing, [bar(5, 110, 90, 100)]).type,
+      CrocSignalExitType.open,
+    );
+  });
+
+  test('a later stop cannot replace the first confirmed target', () {
+    final result = tracker.evaluate(signal, [
+      bar(15, 101, 96, 98),
+      bar(5, 106, 99, 105),
+    ]);
+    expect(result.type, CrocSignalExitType.target);
+    expect(result.occurredAt, time.add(const Duration(minutes: 5)));
+  });
+
 }
