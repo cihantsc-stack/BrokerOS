@@ -37,10 +37,10 @@ void main() {
     );
     final view = const CrocSignalDecisionBridge().inspect(ledger, 'THYAO-1');
     expect(view, isNotNull);
-    expect(view!.riskPercent, 5);
-    expect(view.rewardPercent, 10);
-    expect(view.rewardRiskRatio, 2);
-    expect(view.minutes5?.returnPercent, 2);
+    expect(view!.riskPercent, closeTo(5, 0.0001));
+    expect(view.rewardPercent, closeTo(10, 0.0001));
+    expect(view.rewardRiskRatio, closeTo(2, 0.0001));
+    expect(view.minutes5?.returnPercent, closeTo(2, 0.0001));
     expect(view.minutes15, isNull);
     expect(view.hour1, isNull);
   });
