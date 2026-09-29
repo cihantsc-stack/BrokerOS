@@ -162,7 +162,7 @@ class CrocInstitutionalStrengthEngine {
             : net < 0
                 ? 'DOĞRULANMIŞ NET SATIM'
                 : 'DOĞRULANMIŞ DENGE',
-        explanation: 'Doğrulanmış kaynak: ${participantSource!.provider}. '
+        explanation: 'Doğrulanmış kaynak: ${participantSource.provider}. '
             'Güncel katılımcı işlem verisi; tek başına yatırım kararı değildir.',
         verifiedNetLots: net,
       );
