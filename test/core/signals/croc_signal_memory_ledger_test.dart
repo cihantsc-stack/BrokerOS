@@ -127,4 +127,27 @@ void main() {
     );
   });
 
+  test('out-of-order scanner samples still use earliest eligible quote', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(9, 109, 109, 109));
+    ledger.recordObservation(signal().id, point(6, 102, 102, 102));
+    ledger.recordObservation(signal().id, point(4, 120, 120, 120));
+    final outcome = ledger.outcome(signal().id, CrocSignalHorizon.minutes5);
+    expect(outcome?.evaluatedAt, start.add(const Duration(minutes: 6)));
+    expect(outcome?.returnPercent, closeTo(2, 0.0001));
+    expect(outcome?.maxFavorablePercent, closeTo(20, 0.0001));
+  });
+
+  test('a missing 5-minute sample stays unknown despite a later 15-minute quote', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal());
+    ledger.recordObservation(signal().id, point(15, 106, 106, 106));
+    expect(ledger.outcome(signal().id, CrocSignalHorizon.minutes5), isNull);
+    expect(
+      ledger.outcome(signal().id, CrocSignalHorizon.minutes15)?.returnPercent,
+      closeTo(6, 0.0001),
+    );
+  });
+
 }
