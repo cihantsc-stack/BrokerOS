@@ -119,6 +119,10 @@ void main() {
     expect(report!.netLots, -20);
     expect(report.participants.first.participant, 'A');
     expect(report.participants.last.netLots, -80);
+    expect(report.topNetBuyer?.participant, 'A');
+    expect(report.topNetBuyer?.netLots, 60);
+    expect(report.topNetSeller?.participant, 'B');
+    expect(report.topNetSeller?.netLots, -80);
   });
 
   test('duplicate participant identifiers invalidate a report', () {
