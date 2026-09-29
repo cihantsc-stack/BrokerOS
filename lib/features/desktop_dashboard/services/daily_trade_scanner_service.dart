@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../../core/analysis/croc_technical_analysis.dart';
 import '../../../core/bist/database/bist100_master_database.dart';
 import '../../../core/bist/models/bist_stock.dart';
@@ -114,7 +115,7 @@ class DailyTradeScannerService {
     // Ayni anda ikinci tam BIST taramasini baslatma.
     final running = _inFlightScan;
     if (running != null) {
-      print('CROC SINGLE FLIGHT | DEVAM EDEN TARAMA PAYLASILDI');
+      debugPrint('CROC SINGLE FLIGHT | DEVAM EDEN TARAMA PAYLASILDI');
       return running;
     }
 
@@ -374,45 +375,45 @@ class DailyTradeScannerService {
                 }
 
                 // ignore: avoid_print
-                print('');
+                debugPrint('');
                 // ignore: avoid_print
-                print('=== CROC SPECIAL MONEY DIAG | ${stock.code} ===');
+                debugPrint('=== CROC SPECIAL MONEY DIAG | ${stock.code} ===');
                 // ignore: avoid_print
-                print(
+                debugPrint(
                   'Crazy $crazyScore | '
                   'Para ${diagnostic.moneyScore} | '
                   'Hafiza ${diagnostic.memoryScore}',
                 );
                 // ignore: avoid_print
-                print(
+                debugPrint(
                   '5DK ${diagnostic.volumeRatio.toStringAsFixed(2)}x | '
                   '15DK ${diagnostic.volume15Ratio.toStringAsFixed(2)}x',
                 );
                 // ignore: avoid_print
-                print(
+                debugPrint(
                   'CMF ${diagnostic.chaikinMoneyFlow.toStringAsFixed(2)} | '
                   'VWAP ${diagnostic.vwap.toStringAsFixed(2)} | '
                   'FIYAT ${livePrice.toStringAsFixed(2)}',
                 );
                 // ignore: avoid_print
-                print(
+                debugPrint(
                   'VWAP ${diagAboveVwap ? "USTU" : "ALTI"} | '
                   'RSI ${diagnostic.rsi.toStringAsFixed(0)} | '
                   'DEGISIM %${snapshot.tick.changePercent.toStringAsFixed(2)}',
                 );
                 // ignore: avoid_print
-                print('EARLY GATE  : ${diagEarlyGate ? "PASS" : "FAIL"}');
+                debugPrint('EARLY GATE  : ${diagEarlyGate ? "PASS" : "FAIL"}');
                 // ignore: avoid_print
-                print('NORMAL GATE : ${diagNormalGate ? "PASS" : "FAIL"}');
+                debugPrint('NORMAL GATE : ${diagNormalGate ? "PASS" : "FAIL"}');
                 // ignore: avoid_print
-                print(
+                debugPrint(
                   'NEDEN       : '
                   '${diagReasons.isEmpty ? "GATE UYGUN" : diagReasons.join(" | ")}',
                 );
                 // ignore: avoid_print
-                print('================================================');
+                debugPrint('================================================');
                 // ignore: avoid_print
-                print('');
+                debugPrint('');
               }
 
               if (_isCrazyMoneyCandidate(
@@ -540,7 +541,7 @@ class DailyTradeScannerService {
 
       batchWatch.stop();
 
-      print(
+      debugPrint(
         'CROC TIMING V3 | BATCH ${(i ~/ concurrency) + 1} | '
         '${batch.length} HISSE | '
         '${(batchWatch.elapsedMilliseconds / 1000).toStringAsFixed(2)} SN',
@@ -593,10 +594,10 @@ class DailyTradeScannerService {
       return b.tlVolume.compareTo(a.tlVolume);
     });
 
-    print('=== CROC CRAZY MONEY HAM TOP 5 ===');
+    debugPrint('=== CROC CRAZY MONEY HAM TOP 5 ===');
 
     for (final item in crazyMoneyDiagnostics.take(5)) {
-      print(
+      debugPrint(
         '${item.symbol} | '
         'Crazy ${item.crazyScore} | '
         'Para ${item.moneyScore} | '
@@ -698,13 +699,13 @@ class DailyTradeScannerService {
 
     scanWatch.stop();
 
-    print('============================================================');
-    print(
+    debugPrint('============================================================');
+    debugPrint(
       'CROC TIMING V3 | TOTAL | '
       '${(scanWatch.elapsedMilliseconds / 1000).toStringAsFixed(2)} SN | '
       '${universe.length} HISSE',
     );
-    print('============================================================');
+    debugPrint('============================================================');
 
     return _cache!;
   }
