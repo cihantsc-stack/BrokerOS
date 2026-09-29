@@ -34,6 +34,7 @@ void main() {
     final report = store.report('THYAO', asOf: now);
     expect(report, isNotNull);
     expect(report!.topNetBuyer?.participant, 'A');
+    expect(store.participants('thyao', asOf: now).length, 2);
     expect(report.topNetSeller?.participant, 'B');
   });
 
@@ -78,6 +79,7 @@ void main() {
       isFalse,
     );
     expect(store.report('THYAO', asOf: now), isNull);
+    expect(store.participants('THYAO', asOf: now), isEmpty);
   });
 
   test('a previously fresh snapshot expires', () {
