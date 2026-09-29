@@ -243,4 +243,41 @@ void main() {
     );
   });
 
+  test('next-day quote never becomes the previous session close', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal(id: 'CLOSE-DAY'));
+    ledger.recordObservation(
+      'CLOSE-DAY',
+      point(120, 103, 103, 103),
+    );
+    ledger.recordObservation(
+      'CLOSE-DAY',
+      point(24 * 60, 130, 130, 130),
+    );
+    final close = ledger.outcome(
+      'CLOSE-DAY',
+      CrocSignalHorizon.sessionClose,
+      sessionClosed: true,
+    );
+    expect(close?.evaluatedAt, start.add(const Duration(minutes: 120)));
+    expect(close?.returnPercent, closeTo(3, 0.0001));
+  });
+
+  test('a next-day quote alone is insufficient for confirmed session close', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal(id: 'NO-SAME-DAY'));
+    ledger.recordObservation(
+      'NO-SAME-DAY',
+      point(24 * 60, 130, 130, 130),
+    );
+    expect(
+      ledger.outcome(
+        'NO-SAME-DAY',
+        CrocSignalHorizon.sessionClose,
+        sessionClosed: true,
+      ),
+      isNull,
+    );
+  });
+
 }
