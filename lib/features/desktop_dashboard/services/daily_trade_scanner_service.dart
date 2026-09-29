@@ -118,6 +118,11 @@ class DailyTradeScannerService {
     bool forceRefresh = false,
     int concurrency = 15,
   }) {
+    if (concurrency < 1) {
+      return Future.error(
+        ArgumentError.value(concurrency, 'concurrency', 'Must be at least 1'),
+      );
+    }
     // Gecerli cache varsa tekrar tarama yapma.
     if (!forceRefresh && _hasFreshScanCache()) {
       return Future.value(_cache!);
