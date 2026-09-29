@@ -137,9 +137,15 @@ class CrocSignalMemoryEngine {
       returnPercent: (last.close / base - 1) * 100,
       maxFavorablePercent: (peak / base - 1) * 100,
       maxAdversePercent: (trough / base - 1) * 100,
+      // Invalid planning levels are not genuine target/stop events.
       targetTouched: signal.targetPrice != null &&
+          signal.targetPrice!.isFinite &&
+          signal.targetPrice! > base &&
           peak >= signal.targetPrice!,
       stopTouched: signal.stopPrice != null &&
+          signal.stopPrice!.isFinite &&
+          signal.stopPrice! > 0 &&
+          signal.stopPrice! < base &&
           trough <= signal.stopPrice!,
     );
   }
