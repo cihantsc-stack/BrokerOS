@@ -1148,6 +1148,18 @@ class _CrazyMoneyRow extends StatelessWidget {
                     );
                   },
                 ),
+                if (CrocInstitutionalFlowStore.instance
+                        .report(candidate.symbol)?.topNetSeller case final seller?)
+                  Tooltip(
+                    message: 'Doğrulanmış AKD kaynağından aracı kurum net '
+                        'satış miktarı. Yatırımcı kimliği değildir.',
+                    child: _CrazyMoneyChip(
+                      label: 'AKD NET SATICI',
+                      value: '${seller.participant} '
+                          '${seller.netLots.toStringAsFixed(0)}',
+                      positive: false,
+                    ),
+                  ),
                 _CrazyMoneyChip(
                   label: 'RSI',
                   value: candidate.rsi.toStringAsFixed(0),
