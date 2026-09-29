@@ -818,7 +818,7 @@ class _CrazyMoneyPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
-                  'ANLIK PARA AKIŞI',
+                  'TEKNİK HACİM SİNYALİ',
                   style: TextStyle(
                     color: Color(0xFFFFA76C),
                     fontSize: 7,
@@ -839,7 +839,7 @@ class _CrazyMoneyPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Teknik fırsattan bağımsız güçlü para hareketleri',
+            'Fiyat, hacim, VWAP ve CMF tabanlı tarama; gerçek AKD değildir.',
             style: TextStyle(
               color: Color(0xFF9E8879),
               fontSize: 8,
@@ -1040,9 +1040,9 @@ class _CrazyMoneyRow extends StatelessWidget {
                     final fifteen = decision?.minutes15;
                     final hour = decision?.hour1;
                     return Tooltip(
-                      message: 'Hafıza sonuçları tarama anındaki fiyat '
-                          'gözlemlerinden hesaplanır; gerçekleşmiş işlem '
-                          'veya 1 dakikalık mum verisi değildir.',
+                      message: 'Hafıza yalnızca sonraki taramalarda da aday kalan '
+                          'hisselerden fiyat gözlemi alır. Sonuçlar '
+                          'gerçekleşmiş işlem veya mum verisi değildir.',
                       child: Wrap(
                         spacing: 5,
                         runSpacing: 5,
