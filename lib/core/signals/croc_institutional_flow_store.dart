@@ -45,5 +45,16 @@ class CrocInstitutionalFlowStore {
     return result;
   }
 
+  /// Names and signed net lots from a licensed, verified report only.
+  /// Returns no rows when the provider snapshot is missing or expired.
+  List<CrocParticipantFlow> participants(
+    String symbol, {
+    DateTime? asOf,
+  }) {
+    final verified = report(symbol, asOf: asOf);
+    if (verified == null) return const [];
+    return verified.participants;
+  }
+
   void clear() => _reports.clear();
 }
