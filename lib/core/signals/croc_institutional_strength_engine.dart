@@ -63,7 +63,22 @@ class CrocParticipantFlowReport {
     required this.totalSellLots,
   });
 
+  /// Sum of displayed rows; not a market-wide institutional inflow.
   double get netLots => totalBuyLots - totalSellLots;
+
+  CrocParticipantFlow? get topNetBuyer {
+    for (final row in participants) {
+      if (row.netLots > 0) return row;
+    }
+    return null;
+  }
+
+  CrocParticipantFlow? get topNetSeller {
+    for (final row in participants.reversed) {
+      if (row.netLots < 0) return row;
+    }
+    return null;
+  }
 }
 
 class CrocParticipantFlowAggregator {
