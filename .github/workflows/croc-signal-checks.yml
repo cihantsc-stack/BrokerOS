@@ -1,0 +1,31 @@
+name: CROC signal checks
+
+on:
+  push:
+    branches:
+      - croc-live-snapshot-20260919
+    paths:
+      - 'lib/core/signals/**'
+      - 'lib/features/desktop_dashboard/services/daily_trade_scanner_service.dart'
+      - 'lib/features/desktop_dashboard/widgets/daily_trade_command_center.dart'
+      - 'test/core/signals/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/croc-signal-checks.yml'
+  workflow_dispatch:
+
+jobs:
+  flutter-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze signal code
+        run: flutter analyze lib/core/signals lib/features/desktop_dashboard/services/daily_trade_scanner_service.dart lib/features/desktop_dashboard/widgets/daily_trade_command_center.dart
+      - name: Run signal tests
+        run: flutter test test/core/signals
