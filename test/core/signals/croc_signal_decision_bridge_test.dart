@@ -157,4 +157,22 @@ void main() {
     );
   });
 
+  test('confirmed close ignores next-day-only quote', () {
+    const id = 'CLOSE-2';
+    ledger.recordSignal(CrocSignalSnapshot(
+      id: id, symbol: 'THYAO', engine: 'CRAZY',
+      createdAt: at, entryPrice: 100, score: 70,
+    ));
+    ledger.recordObservation(id, CrocSignalObservation(
+      observedAt: at.add(const Duration(days: 1)),
+      high: 120, low: 120, close: 120,
+    ));
+    expect(
+      const CrocSignalDecisionBridge()
+          .inspect(ledger, id, sessionClosed: true)
+          ?.sessionClose,
+      isNull,
+    );
+  });
+
 }
