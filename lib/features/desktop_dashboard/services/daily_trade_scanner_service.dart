@@ -82,15 +82,19 @@ class DailyTradeScannerService {
 
   CrocSignalOutcome? crazyMoneyOutcome(
     String symbol,
-    CrocSignalHorizon horizon,
-  ) {
-    final decision = crazyMoneyDecision(symbol);
+    CrocSignalHorizon horizon, {
+    bool sessionClosed = false,
+  }) {
+    final decision = crazyMoneyDecision(
+      symbol,
+      sessionClosed: sessionClosed,
+    );
     if (decision == null) return null;
     return switch (horizon) {
       CrocSignalHorizon.minutes5 => decision.minutes5,
       CrocSignalHorizon.minutes15 => decision.minutes15,
       CrocSignalHorizon.hour1 => decision.hour1,
-      CrocSignalHorizon.sessionClose => null,
+      CrocSignalHorizon.sessionClose => decision.sessionClose,
     };
   }
 
