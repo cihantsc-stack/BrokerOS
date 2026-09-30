@@ -387,4 +387,29 @@ void main() {
     expect(ledger.signalCount, 0);
   });
 
+  test('persistence views are sorted and cannot mutate ledger state', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal(id: 'EXPORT'));
+    ledger.recordObservation('EXPORT', point(10, 103, 100, 102));
+    ledger.recordObservation('EXPORT', point(5, 102, 99, 101));
+
+    expect(ledger.signals.map((item) => item.id), contains('EXPORT'));
+    expect(
+      ledger.observations('EXPORT').map((item) => item.observedAt),
+      [
+        start.add(const Duration(minutes: 5)),
+        start.add(const Duration(minutes: 10)),
+      ],
+    );
+    expect(
+      () => ledger.signals.add(signal(id: 'MUTATE')),
+      throwsUnsupportedError,
+    );
+    expect(
+      () => ledger.observations('EXPORT').clear(),
+      throwsUnsupportedError,
+    );
+    expect(ledger.signalCount, 1);
+  });
+
 }
