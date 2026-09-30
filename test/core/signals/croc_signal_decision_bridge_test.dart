@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/core/signals/croc_signal_exit_tracker.dart';
 import 'package:mobile/core/signals/croc_signal_decision_bridge.dart';
 import 'package:mobile/core/signals/croc_signal_memory_engine.dart';
 import 'package:mobile/core/signals/croc_signal_memory_ledger.dart';
@@ -173,6 +174,35 @@ void main() {
           ?.sessionClose,
       isNull,
     );
+  });
+
+  test('decision view exposes first confirmed target or stop event', () {
+    const id = 'THYAO-EXIT';
+    ledger.recordSignal(CrocSignalSnapshot(
+      id: id,
+      symbol: 'THYAO',
+      engine: 'CRAZY',
+      createdAt: at,
+      entryPrice: 100,
+      score: 70,
+      targetPrice: 105,
+      stopPrice: 97,
+    ));
+    ledger.recordObservation(id, CrocSignalObservation(
+      observedAt: at.add(const Duration(minutes: 5)),
+      high: 101,
+      low: 96,
+      close: 98,
+    ));
+    ledger.recordObservation(id, CrocSignalObservation(
+      observedAt: at.add(const Duration(minutes: 10)),
+      high: 106,
+      low: 100,
+      close: 105,
+    ));
+    final view = const CrocSignalDecisionBridge().inspect(ledger, id);
+    expect(view?.firstExit?.type, CrocSignalExitType.stop);
+    expect(view?.firstExit?.level, 97);
   });
 
 }
