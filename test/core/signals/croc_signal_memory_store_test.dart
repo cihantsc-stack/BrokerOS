@@ -59,5 +59,19 @@ void main() {
       sessionDay: DateTime(2026, 9, 30),
     );
     expect(ledger.signalCount, 0);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey('croc_signal_memory_v1'), isFalse);
+  });
+
+  test('non-list persistence payload is removed after safe restore', () async {
+    SharedPreferences.setMockInitialValues({
+      'croc_signal_memory_v1': jsonEncode({'unexpected': true}),
+    });
+    final ledger = await CrocSignalMemoryStore().load(
+      sessionDay: DateTime(2026, 9, 30),
+    );
+    expect(ledger.signalCount, 0);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey('croc_signal_memory_v1'), isFalse);
   });
 }
