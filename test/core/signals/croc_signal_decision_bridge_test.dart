@@ -134,4 +134,27 @@ void main() {
     expect(view.rewardRiskRatio, isNull);
   });
 
+  test('session close requires explicit confirmation', () {
+    const id = 'CLOSE-1';
+    ledger.recordSignal(CrocSignalSnapshot(
+      id: id, symbol: 'THYAO', engine: 'CRAZY',
+      createdAt: at, entryPrice: 100, score: 70,
+    ));
+    ledger.recordObservation(id, CrocSignalObservation(
+      observedAt: at.add(const Duration(hours: 7)),
+      high: 104, low: 100, close: 103,
+    ));
+    expect(
+      const CrocSignalDecisionBridge().inspect(ledger, id)?.sessionClose,
+      isNull,
+    );
+    expect(
+      const CrocSignalDecisionBridge()
+          .inspect(ledger, id, sessionClosed: true)
+          ?.sessionClose
+          ?.returnPercent,
+      closeTo(3, 0.0001),
+    );
+  });
+
 }
