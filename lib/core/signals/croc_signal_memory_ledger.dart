@@ -14,6 +14,18 @@ class CrocSignalMemoryLedger {
 
   int get signalCount => _signals.length;
 
+  /// Read-only snapshots for persistence/export layers.
+  List<CrocSignalSnapshot> get signals =>
+      List<CrocSignalSnapshot>.unmodifiable(_signals.values);
+
+  List<CrocSignalObservation> observations(String signalId) {
+    final points = _observations[signalId];
+    if (points == null) return const <CrocSignalObservation>[];
+    final sorted = points.values.toList()
+      ..sort((a, b) => a.observedAt.compareTo(b.observedAt));
+    return List<CrocSignalObservation>.unmodifiable(sorted);
+  }
+
   /// Removes expired signal snapshots and their observations.
   int pruneBefore(DateTime cutoff) {
     final expiredIds = _signals.entries
