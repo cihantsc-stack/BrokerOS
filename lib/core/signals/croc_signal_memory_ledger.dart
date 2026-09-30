@@ -28,10 +28,13 @@ class CrocSignalMemoryLedger {
   }
 
   bool recordSignal(CrocSignalSnapshot signal) {
-    if (signal.id.isEmpty ||
-        signal.symbol.isEmpty ||
+    if (signal.id.trim().isEmpty ||
+        signal.symbol.trim().isEmpty ||
+        signal.engine.trim().isEmpty ||
         signal.entryPrice <= 0 ||
         !signal.entryPrice.isFinite ||
+        signal.score < 0 ||
+        signal.score > 100 ||
         _signals.containsKey(signal.id)) {
       return false;
     }
