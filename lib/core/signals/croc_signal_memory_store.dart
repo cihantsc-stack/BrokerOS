@@ -31,7 +31,11 @@ class CrocSignalMemoryStore {
       };
     }).toList(growable: false);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(payload));
+    final encoded = jsonEncode(payload);
+    final written = await prefs.setString(_key, encoded);
+    if (!written) {
+      throw StateError('CROC signal memory could not be persisted.');
+    }
   }
 
   Future<CrocSignalMemoryLedger> load({DateTime? sessionDay}) async {
@@ -41,7 +45,10 @@ class CrocSignalMemoryStore {
     if (raw == null || raw.isEmpty) return ledger;
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return ledger;
+      if (decoded is! List) {
+        await prefs.remove(_key);
+        return ledger;
+      }
       final day = sessionDay ?? DateTime.now();
       for (final item in decoded) {
         if (item is! Map) continue;
@@ -93,6 +100,7 @@ class CrocSignalMemoryStore {
         }
       }
     } catch (_) {
+      await prefs.remove(_key);
       return CrocSignalMemoryLedger();
     }
     return ledger;
