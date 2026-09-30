@@ -212,6 +212,7 @@ class DailyTradeScannerService {
     final results = <DailyTradeCandidate>[];
     final crazyMoneyResults = <CrazyMoneyCandidate>[];
     final crazyMoneyDiagnostics = <CrazyMoneyCandidate>[];
+    final crazyMoneyObservedAt = <String, DateTime>{};
     final sectorTicks = <BistStockTick>[];
 
     for (var i = 0; i < universe.length; i += concurrency) {
@@ -248,6 +249,7 @@ class DailyTradeScannerService {
 
             final analysis = _engine.analyze(snapshot.candles);
             final livePrice = snapshot.tick.price;
+            final quoteObservedAt = snapshot.tick.timestamp;
 
             sectorTicks.add(
               BistStockTick(
@@ -285,6 +287,7 @@ class DailyTradeScannerService {
 
             if (moneyDiagnostic != null) {
               final diagnostic = moneyDiagnostic;
+              crazyMoneyObservedAt[stock.code.toUpperCase()] = quoteObservedAt;
 
               final crazyScore = _crazyMoneyScore(
                 diagnostic: diagnostic,
@@ -662,6 +665,8 @@ class DailyTradeScannerService {
     );
     for (final candidate in crazyMoneyResults) {
       if (!candidate.livePrice.isFinite || candidate.livePrice <= 0) continue;
+      final observedAt =
+          crazyMoneyObservedAt[candidate.symbol.toUpperCase()] ?? seenAt;
       final day = '${seenAt.year.toString().padLeft(4, '0')}-'
           '${seenAt.month.toString().padLeft(2, '0')}-'
           '${seenAt.day.toString().padLeft(2, '0')}';
@@ -671,19 +676,19 @@ class DailyTradeScannerService {
           id: id,
           symbol: candidate.symbol,
           engine: 'CRAZY_MONEY_SCANNER',
-          createdAt: seenAt,
+          createdAt: observedAt,
           entryPrice: candidate.livePrice,
           score: candidate.crazyScore,
         ),
       )) {
-        _firstSeenBySymbol[candidate.symbol.toUpperCase()] = seenAt;
+        _firstSeenBySymbol[candidate.symbol.toUpperCase()] = observedAt;
       } else {
         // A subsequent scan is a price observation, not a new signal.
         // The daily snapshot remains immutable.
         _signalMemory.recordObservation(
           id,
           CrocSignalObservation(
-            observedAt: seenAt,
+            observedAt: observedAt,
             high: candidate.livePrice,
             low: candidate.livePrice,
             close: candidate.livePrice,
