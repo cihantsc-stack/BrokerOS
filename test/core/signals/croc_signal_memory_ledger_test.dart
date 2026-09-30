@@ -322,4 +322,27 @@ void main() {
     expect(ledger.signal('BOUNDARY'), isNotNull);
   });
 
+  test('horizon uses first eligible scanner sample, not the best later price', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal(id: 'SAMPLE-WINDOW'));
+    ledger.recordObservation('SAMPLE-WINDOW', point(6, 101, 101, 101));
+    ledger.recordObservation('SAMPLE-WINDOW', point(8, 110, 110, 110));
+    final outcome = ledger.outcome(
+      'SAMPLE-WINDOW',
+      CrocSignalHorizon.minutes5,
+    );
+    expect(outcome?.evaluatedAt, start.add(const Duration(minutes: 6)));
+    expect(outcome?.returnPercent, closeTo(1, 0.0001));
+  });
+
+  test('sample beyond five-minute grace stays unknown', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal(id: 'LATE-SAMPLE'));
+    ledger.recordObservation('LATE-SAMPLE', point(11, 110, 110, 110));
+    expect(
+      ledger.outcome('LATE-SAMPLE', CrocSignalHorizon.minutes5),
+      isNull,
+    );
+  });
+
 }
