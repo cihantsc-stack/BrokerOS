@@ -1042,7 +1042,9 @@ class _CrazyMoneyRow extends StatelessWidget {
                       message: 'Hafıza sonraki taramalarda teknik verisi bulunan '
                           'hisselerin fiyat gözlemlerini izler; adaylıktan '
                           'çıksa da takip sürer. Sonuçlar gerçekleşmiş '
-                          'işlem veya OHLC mum verisi değildir.',
+                          'işlem veya OHLC mum verisi değildir. +5/+15/+60 değerleri '
+                          'ilgili ufuktan sonra en fazla 5 dakika içinde alınan '
+                          'ilk geçerli tarama örneğidir.',
                       child: Wrap(
                         spacing: 5,
                         runSpacing: 5,
@@ -1061,21 +1063,21 @@ class _CrazyMoneyRow extends StatelessWidget {
                             ),
                           if (five != null)
                             _CrazyMoneyChip(
-                              label: 'İLK +5DK',
+                              label: 'ÖRNEK +5DK',
                               value:
                                   '${five.returnPercent.toStringAsFixed(2)}%',
                               positive: five.returnPercent >= 0,
                             ),
                           if (fifteen != null)
                             _CrazyMoneyChip(
-                              label: 'İLK +15DK',
+                              label: 'ÖRNEK +15DK',
                               value:
                                   '${fifteen.returnPercent.toStringAsFixed(2)}%',
                               positive: fifteen.returnPercent >= 0,
                             ),
                           if (hour != null)
                             _CrazyMoneyChip(
-                              label: 'İLK +60DK',
+                              label: 'ÖRNEK +60DK',
                               value:
                                   '${hour.returnPercent.toStringAsFixed(2)}%',
                               positive: hour.returnPercent >= 0,
