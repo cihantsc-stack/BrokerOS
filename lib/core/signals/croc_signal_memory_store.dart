@@ -74,7 +74,11 @@ class CrocSignalMemoryStore {
           final high = (point['high'] as num?)?.toDouble();
           final low = (point['low'] as num?)?.toDouble();
           final close = (point['close'] as num?)?.toDouble();
-          if (observedAt == null || high == null || low == null || close == null) {
+          if (observedAt == null ||
+              high == null ||
+              low == null ||
+              close == null ||
+              !_sameDay(observedAt, createdAt)) {
             continue;
           }
           ledger.recordObservation(
