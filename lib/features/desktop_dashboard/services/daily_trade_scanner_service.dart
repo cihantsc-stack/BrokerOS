@@ -689,9 +689,16 @@ class DailyTradeScannerService {
       if (!candidate.livePrice.isFinite || candidate.livePrice <= 0) continue;
       final observedAt =
           crazyMoneyObservedAt[candidate.symbol.toUpperCase()] ?? seenAt;
-      final day = '${seenAt.year.toString().padLeft(4, '0')}-'
-          '${seenAt.month.toString().padLeft(2, '0')}-'
-          '${seenAt.day.toString().padLeft(2, '0')}';
+      // Never admit a stale/future quote into today's signal memory.
+      if (observedAt.year != seenAt.year ||
+          observedAt.month != seenAt.month ||
+          observedAt.day != seenAt.day ||
+          observedAt.isAfter(seenAt.add(const Duration(minutes: 5)))) {
+        continue;
+      }
+      final day = '${observedAt.year.toString().padLeft(4, '0')}-'
+          '${observedAt.month.toString().padLeft(2, '0')}-'
+          '${observedAt.day.toString().padLeft(2, '0')}';
       final id = '${candidate.symbol.toUpperCase()}-$day-CRAZY';
       if (_signalMemory.recordSignal(
         CrocSignalSnapshot(
@@ -738,6 +745,12 @@ class DailyTradeScannerService {
           '${firstSeen.month.toString().padLeft(2, '0')}-'
           '${firstSeen.day.toString().padLeft(2, '0')}';
       final observedAt = crazyMoneyObservedAt[symbol] ?? seenAt;
+      if (observedAt.year != firstSeen.year ||
+          observedAt.month != firstSeen.month ||
+          observedAt.day != firstSeen.day ||
+          observedAt.isAfter(seenAt.add(const Duration(minutes: 5)))) {
+        continue;
+      }
       _signalMemory.recordObservation(
         '$symbol-$day-CRAZY',
         CrocSignalObservation(
