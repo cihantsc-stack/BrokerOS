@@ -280,4 +280,46 @@ void main() {
     );
   });
 
+  test('pruneBefore removes expired signals and their observations only', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal(id: 'OLD'));
+    ledger.recordObservation('OLD', point(5, 102, 99, 101));
+
+    final newerStart = start.add(const Duration(days: 1));
+    ledger.recordSignal(CrocSignalSnapshot(
+      id: 'NEW',
+      symbol: 'THYAO',
+      engine: 'CRAZY_MONEY',
+      createdAt: newerStart,
+      entryPrice: 100,
+      score: 75,
+    ));
+    ledger.recordObservation(
+      'NEW',
+      CrocSignalObservation(
+        observedAt: newerStart.add(const Duration(minutes: 5)),
+        high: 103,
+        low: 100,
+        close: 102,
+      ),
+    );
+
+    expect(ledger.pruneBefore(newerStart), 1);
+    expect(ledger.signal('OLD'), isNull);
+    expect(ledger.outcome('OLD', CrocSignalHorizon.minutes5), isNull);
+    expect(ledger.signal('NEW'), isNotNull);
+    expect(
+      ledger.outcome('NEW', CrocSignalHorizon.minutes5)?.returnPercent,
+      closeTo(2, 0.0001),
+    );
+    expect(ledger.signalCount, 1);
+  });
+
+  test('pruneBefore keeps signals created exactly at cutoff', () {
+    final ledger = CrocSignalMemoryLedger();
+    ledger.recordSignal(signal(id: 'BOUNDARY'));
+    expect(ledger.pruneBefore(start), 0);
+    expect(ledger.signal('BOUNDARY'), isNotNull);
+  });
+
 }
