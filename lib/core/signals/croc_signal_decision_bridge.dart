@@ -8,8 +8,9 @@ class CrocSignalDecisionBridge {
 
   CrocSignalDecisionView? inspect(
     CrocSignalMemoryLedger ledger,
-    String signalId,
-  ) {
+    String signalId, {
+    bool sessionClosed = false,
+  }) {
     final signal = ledger.signal(signalId);
     if (signal == null) return null;
     final entry = signal.entryPrice;
@@ -31,6 +32,11 @@ class CrocSignalDecisionBridge {
       minutes5: ledger.outcome(signalId, CrocSignalHorizon.minutes5),
       minutes15: ledger.outcome(signalId, CrocSignalHorizon.minutes15),
       hour1: ledger.outcome(signalId, CrocSignalHorizon.hour1),
+      sessionClose: ledger.outcome(
+        signalId,
+        CrocSignalHorizon.sessionClose,
+        sessionClosed: sessionClosed,
+      ),
     );
   }
 }
@@ -43,6 +49,7 @@ class CrocSignalDecisionView {
   final CrocSignalOutcome? minutes5;
   final CrocSignalOutcome? minutes15;
   final CrocSignalOutcome? hour1;
+  final CrocSignalOutcome? sessionClose;
 
   const CrocSignalDecisionView({
     required this.signal,
@@ -52,5 +59,6 @@ class CrocSignalDecisionView {
     required this.minutes5,
     required this.minutes15,
     required this.hour1,
+    required this.sessionClose,
   });
 }
