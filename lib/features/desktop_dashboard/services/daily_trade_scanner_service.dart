@@ -61,7 +61,10 @@ class DailyTradeScannerService {
         seenAt.day == today.day).length;
   }
 
-  CrocSignalDecisionView? crazyMoneyDecision(String symbol) {
+  CrocSignalDecisionView? crazyMoneyDecision(
+    String symbol, {
+    bool sessionClosed = false,
+  }) {
     final normalized = symbol.trim().toUpperCase();
     final seenAt = crazyMoneyFirstSeen(normalized);
     if (seenAt == null) return null;
@@ -73,6 +76,7 @@ class DailyTradeScannerService {
     return const CrocSignalDecisionBridge().inspect(
       _signalMemory,
       [normalized, day, 'CRAZY'].join('-'),
+      sessionClosed: sessionClosed,
     );
   }
 
