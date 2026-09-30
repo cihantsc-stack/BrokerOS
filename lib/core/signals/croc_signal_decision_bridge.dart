@@ -1,5 +1,6 @@
 import 'croc_signal_memory_engine.dart';
 import 'croc_signal_memory_ledger.dart';
+import 'croc_signal_exit_tracker.dart';
 
 /// Read-only bridge between signal scoring, target/stop planning and memory.
 /// A scanner candidate is not a trade, and missing levels stay unknown.
@@ -37,6 +38,7 @@ class CrocSignalDecisionBridge {
         CrocSignalHorizon.sessionClose,
         sessionClosed: sessionClosed,
       ),
+      firstExit: ledger.firstExit(signalId),
     );
   }
 }
@@ -50,6 +52,7 @@ class CrocSignalDecisionView {
   final CrocSignalOutcome? minutes15;
   final CrocSignalOutcome? hour1;
   final CrocSignalOutcome? sessionClose;
+  final CrocSignalExitEvent? firstExit;
 
   const CrocSignalDecisionView({
     required this.signal,
@@ -60,5 +63,6 @@ class CrocSignalDecisionView {
     required this.minutes15,
     required this.hour1,
     required this.sessionClose,
+    required this.firstExit,
   });
 }
