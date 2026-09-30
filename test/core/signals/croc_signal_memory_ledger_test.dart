@@ -345,4 +345,46 @@ void main() {
     );
   });
 
+  test('rejects malformed signal identity and score before storing', () {
+    final ledger = CrocSignalMemoryLedger();
+    final invalidSignals = [
+      CrocSignalSnapshot(
+        id: '   ',
+        symbol: 'THYAO',
+        engine: 'CRAZY',
+        createdAt: start,
+        entryPrice: 100,
+        score: 70,
+      ),
+      CrocSignalSnapshot(
+        id: 'NO-SYMBOL',
+        symbol: '   ',
+        engine: 'CRAZY',
+        createdAt: start,
+        entryPrice: 100,
+        score: 70,
+      ),
+      CrocSignalSnapshot(
+        id: 'NO-ENGINE',
+        symbol: 'THYAO',
+        engine: '   ',
+        createdAt: start,
+        entryPrice: 100,
+        score: 70,
+      ),
+      CrocSignalSnapshot(
+        id: 'BAD-SCORE',
+        symbol: 'THYAO',
+        engine: 'CRAZY',
+        createdAt: start,
+        entryPrice: 100,
+        score: 101,
+      ),
+    ];
+    for (final invalid in invalidSignals) {
+      expect(ledger.recordSignal(invalid), isFalse);
+    }
+    expect(ledger.signalCount, 0);
+  });
+
 }
