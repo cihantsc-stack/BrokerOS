@@ -715,10 +715,11 @@ class DailyTradeScannerService {
       final day = '${firstSeen.year.toString().padLeft(4, '0')}-'
           '${firstSeen.month.toString().padLeft(2, '0')}-'
           '${firstSeen.day.toString().padLeft(2, '0')}';
+      final observedAt = crazyMoneyObservedAt[symbol] ?? seenAt;
       _signalMemory.recordObservation(
         '$symbol-$day-CRAZY',
         CrocSignalObservation(
-          observedAt: seenAt,
+          observedAt: observedAt,
           high: diagnostic.livePrice,
           low: diagnostic.livePrice,
           close: diagnostic.livePrice,
