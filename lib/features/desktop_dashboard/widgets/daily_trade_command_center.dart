@@ -7,6 +7,7 @@ import '../../../core/bist/database/bist_index_membership.dart';
 import '../../../core/bist/models/sector_strength.dart';
 import '../../../core/signals/croc_institutional_strength_engine.dart';
 import '../../../core/signals/croc_institutional_flow_store.dart';
+import '../../../core/signals/croc_signal_exit_tracker.dart';
 import '../../stock_detail/screens/stock_detail_screen.dart';
 import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
@@ -1038,6 +1039,13 @@ class _CrazyMoneyRow extends StatelessWidget {
                     final five = decision?.minutes5;
                     final fifteen = decision?.minutes15;
                     final hour = decision?.hour1;
+                    final firstExit = decision?.firstExit;
+                    final firstExitLabel = switch (firstExit?.type) {
+                      CrocSignalExitType.target => 'HEDEF GÖRÜLDÜ',
+                      CrocSignalExitType.stop => 'STOP GÖRÜLDÜ',
+                      CrocSignalExitType.ambiguous => 'HEDEF/STOP BELİRSİZ',
+                      _ => null,
+                    };
                     return Tooltip(
                       message: 'Hafıza sonraki taramalarda teknik verisi bulunan '
                           'hisselerin fiyat gözlemlerini izler; adaylıktan '
@@ -1081,6 +1089,13 @@ class _CrazyMoneyRow extends StatelessWidget {
                               value:
                                   '${hour.returnPercent.toStringAsFixed(2)}%',
                               positive: hour.returnPercent >= 0,
+                            ),
+                          if (firstExitLabel != null)
+                            _CrazyMoneyChip(
+                              label: 'İLK ÇIKIŞ',
+                              value: firstExitLabel,
+                              positive:
+                                  firstExit?.type == CrocSignalExitType.target,
                             ),
                           if (decision?.riskPercent != null)
                             _CrazyMoneyChip(
