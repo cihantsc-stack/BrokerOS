@@ -10,6 +10,7 @@ import '../../../core/data_foundation/market/yahoo_bist_market_data_source.dart'
 import '../../../core/signals/croc_live_signal_engine.dart';
 import '../../../core/signals/croc_signal_memory_engine.dart';
 import '../../../core/signals/croc_signal_memory_ledger.dart';
+import '../../../core/signals/croc_signal_memory_store.dart';
 import '../../../core/signals/croc_signal_decision_bridge.dart';
 import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
@@ -36,8 +37,27 @@ class DailyTradeScannerService {
   int get latestGlobalScore => _latestGlobalScore;
 
   // Session-only memory: first observed scanner snapshot, not an execution.
-  final CrocSignalMemoryLedger _signalMemory = CrocSignalMemoryLedger();
+  CrocSignalMemoryLedger _signalMemory = CrocSignalMemoryLedger();
+  final CrocSignalMemoryStore _signalMemoryStore = CrocSignalMemoryStore();
   final Map<String, DateTime> _firstSeenBySymbol = {};
+  Future<void>? _signalMemoryRestore;
+
+  Future<void> _restoreSignalMemoryOnce() {
+    final running = _signalMemoryRestore;
+    if (running != null) return running;
+    final future = _signalMemoryStore.load().then((restored) {
+      _signalMemory = restored;
+      _firstSeenBySymbol
+        ..clear()
+        ..addEntries(restored.signals.map(
+          (signal) => MapEntry(signal.symbol.toUpperCase(), signal.createdAt),
+        ));
+    }, onError: (Object error, StackTrace stackTrace) {
+      debugPrint('CROC MEMORY RESTORE | ATLANDI: $error');
+    });
+    _signalMemoryRestore = future;
+    return future;
+  }
 
   // Do not show yesterday's session snapshot as today's live signal.
   DateTime? crazyMoneyFirstSeen(String symbol) {
@@ -168,6 +188,8 @@ class DailyTradeScannerService {
     bool forceRefresh = false,
     int concurrency = 15,
   }) async {
+    await _restoreSignalMemoryOnce();
+
     // CROC TIMING V3
     final scanWatch = Stopwatch()..start();
     if (!forceRefresh && _hasFreshScanCache()) {
@@ -730,6 +752,11 @@ class DailyTradeScannerService {
     _latestCrazyMoneyCandidates = List<CrazyMoneyCandidate>.unmodifiable(
       crazyMoneyResults,
     );
+    try {
+      await _signalMemoryStore.save(_signalMemory);
+    } catch (error) {
+      debugPrint('CROC MEMORY SAVE | ATLANDI: $error');
+    }
 
     _cache = List.unmodifiable(contextualResults);
     _cacheTime = DateTime.now();
