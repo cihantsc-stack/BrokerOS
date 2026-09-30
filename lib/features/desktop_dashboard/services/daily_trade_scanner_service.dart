@@ -647,6 +647,11 @@ class DailyTradeScannerService {
     // Capture the first visible candidate of the day without changing ranking.
     // This records a scanner observation, NOT a buy or executed trade.
     final seenAt = DateTime.now();
+    final sessionStart = DateTime(seenAt.year, seenAt.month, seenAt.day);
+    _signalMemory.pruneBefore(sessionStart);
+    _firstSeenBySymbol.removeWhere(
+      (symbol, firstSeen) => firstSeen.isBefore(sessionStart),
+    );
     for (final candidate in crazyMoneyResults) {
       if (!candidate.livePrice.isFinite || candidate.livePrice <= 0) continue;
       final day = '${seenAt.year.toString().padLeft(4, '0')}-'
