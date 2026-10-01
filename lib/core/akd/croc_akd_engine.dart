@@ -4,6 +4,7 @@ class CrocAkdEngine {
   const CrocAkdEngine({
     this.topCount = 5,
     this.distortionTurnoverThresholdPercent = 60,
+    this.netBookTolerancePercent = 1,
   });
 
   final int topCount;
@@ -12,6 +13,11 @@ class CrocAkdEngine {
   /// side is effectively absent, concentration is not treated as directional
   /// AKD evidence. This protects cases such as repeated limit-lock sessions.
   final double distortionTurnoverThresholdPercent;
+
+  /// Positive and negative broker net lots should balance in a complete AKD
+  /// export. Larger gaps mean the table is partial/truncated and directional
+  /// concentration must not be trusted.
+  final double netBookTolerancePercent;
 
   CrocAkdResult analyze(Iterable<CrocAkdBrokerRow> source) {
     if (topCount < 1) {
@@ -27,6 +33,16 @@ class CrocAkdEngine {
       );
     }
 
+    if (!netBookTolerancePercent.isFinite ||
+        netBookTolerancePercent < 0 ||
+        netBookTolerancePercent > 100) {
+      throw ArgumentError.value(
+        netBookTolerancePercent,
+        'netBookTolerancePercent',
+        'must be between 0 and 100',
+      );
+    }
+
     final rows = source.where((r) => r.isUsable).toList(growable: false);
     final buyers = rows.where((r) => r.netLots > 0).toList()
       ..sort((a, b) => b.netLots.compareTo(a.netLots));
@@ -37,6 +53,9 @@ class CrocAkdEngine {
     final topSellers = sellers.take(topCount).toList(growable: false);
     final positive = _sum(buyers.map((r) => r.netLots));
     final negative = _sum(sellers.map((r) => r.netLots.abs()));
+    final netBookBase = positive > negative ? positive : negative;
+    final netBookImbalancePct = _percent((positive - negative).abs(), netBookBase);
+    final balancedNetBook = netBookBase > 0 && netBookImbalancePct <= netBookTolerancePercent;
     final buyerPct =
         _percent(_sum(topBuyers.map((r) => r.netLots)), positive);
     final sellerPct =
@@ -59,13 +78,15 @@ class CrocAkdEngine {
         turnover > 0 && oneSidedPct >= distortionTurnoverThresholdPercent;
 
     final gap = buyerPct - sellerPct;
-    final signal = distorted
-        ? CrocAkdConcentrationSignal.distorted
-        : gap >= 10
+    final signal = rows.isEmpty || !balancedNetBook
+        ? CrocAkdConcentrationSignal.insufficientData
+        : distorted
+            ? CrocAkdConcentrationSignal.distorted
+            : gap >= 10
             ? CrocAkdConcentrationSignal.buyerConcentrated
-            : gap <= -10
-                ? CrocAkdConcentrationSignal.sellerConcentrated
-                : CrocAkdConcentrationSignal.balanced;
+                : gap <= -10
+                    ? CrocAkdConcentrationSignal.sellerConcentrated
+                    : CrocAkdConcentrationSignal.balanced;
 
     return CrocAkdResult(
       rows: List.unmodifiable(rows),
@@ -78,6 +99,8 @@ class CrocAkdEngine {
       turnoverConcentrationPercent: turnoverPct,
       oneSidedTurnoverPercent: oneSidedPct,
       isFlowDistorted: distorted,
+      isBalancedNetBook: balancedNetBook,
+      netBookImbalancePercent: netBookImbalancePct,
       signal: signal,
     );
   }
