@@ -151,7 +151,7 @@ BOOL CALLBACK FindExcel7(HWND hwnd, LPARAM lparam) {
 IDispatch* ExcelApplicationFromWindow(HWND excel7) {
   IDispatch* native = nullptr;
   const HRESULT hr = AccessibleObjectFromWindow(
-      excel7, OBJID_NATIVEOM, IID_IDispatch,
+      excel7, static_cast<DWORD>(OBJID_NATIVEOM), IID_IDispatch,
       reinterpret_cast<void**>(&native));
   if (FAILED(hr) || !native) return nullptr;
 
