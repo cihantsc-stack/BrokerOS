@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import '../../core/akd/croc_matriks_akd_adapter.dart';
-import '../../core/akd/croc_matriks_xlsx_reader.dart';
-import '../../core/signals/croc_institutional_strength_engine.dart';
+import '../../../core/akd/croc_matriks_akd_adapter.dart';
+import '../../../core/akd/croc_matriks_xlsx_reader.dart';
+import '../../../core/signals/croc_institutional_strength_engine.dart';
 
 class CrocAkdXlsxImportResult {
   const CrocAkdXlsxImportResult({
