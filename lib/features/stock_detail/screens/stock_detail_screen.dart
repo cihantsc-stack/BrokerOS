@@ -811,7 +811,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   Icon(Icons.circle, color: Color(0xFF70F4AD), size: 9),
                   SizedBox(width: 7),
                   Text(
-                    'BIST AÇIK',
+                    'BIST GENEL • AÇIK',
                     style: TextStyle(
                       color: Color(0xFF70F4AD),
                       fontSize: 11,
@@ -986,8 +986,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   Widget _buildCrocDecisionHero(bool mobile) {
     final ready = _analysis != null || _hasSnapshotMismatch;
     final decision = ready ? _displayDecision : 'ANALİZ EDİLİYOR';
-    final score = ready ? _displayAiScore : 0;
     final blocked = _hasSnapshotMismatch;
+    final score = blocked ? 0 : (ready ? _displayAiScore : 0);
     final target = blocked ? null : _analysis?.target;
     final stop = blocked ? null : _analysis?.stop;
     final a = blocked ? null : _analysis;
@@ -1207,7 +1207,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'GÜVEN %$_displayConfidence',
+                    blocked ? 'GÜVEN —' : 'GÜVEN %$_displayConfidence',
                     style: const TextStyle(
                       color: Color(0xFFA8BAB2),
                       fontSize: 8,
@@ -1314,7 +1314,9 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           if (ready) ...[
             SizedBox(height: mobile ? 6 : 7),
             Text(
-              _displayAnalysisReason,
+              blocked
+                  ? 'Canlı veri doğrulanamadığı için ana ekranda teknik, momentum ve risk skorları gösterilmiyor.'
+                  : _displayAnalysisReason,
               maxLines: mobile ? 2 : 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -1436,7 +1438,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  ready ? '$score' : '—',
+                  ready && !blocked ? '$score' : '—',
                   style: const TextStyle(
                     color: Color(0xFFB5C5BE),
                     fontSize: 9.5,
