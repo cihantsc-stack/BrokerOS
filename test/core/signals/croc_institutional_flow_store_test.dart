@@ -13,15 +13,16 @@ void main() {
         authenticated: authenticated,
       );
 
+  // Complete two-sided net book: +80 and -80.
   const rows = [
     CrocParticipantFlow(participant: 'A', buyLots: 100, sellLots: 20),
-    CrocParticipantFlow(participant: 'B', buyLots: 20, sellLots: 70),
+    CrocParticipantFlow(participant: 'B', buyLots: 20, sellLots: 100),
   ];
 
   setUp(store.clear);
   tearDown(store.clear);
 
-  test('accepts verified fresh AKD and normalizes ticker', () {
+  test('accepts verified fresh complete AKD and normalizes ticker', () {
     expect(
       store.accept(
         symbol: ' thyao ',
@@ -36,6 +37,40 @@ void main() {
     expect(report!.topNetBuyer?.participant, 'A');
     expect(store.participants('thyao', asOf: now).length, 2);
     expect(report.topNetSeller?.participant, 'B');
+  });
+
+  test('rejects incomplete AKD net book before it reaches UI', () {
+    expect(
+      store.accept(
+        symbol: 'THYAO',
+        source: source(now),
+        rows: const [
+          CrocParticipantFlow(participant: 'A', buyLots: 100, sellLots: 20),
+          CrocParticipantFlow(participant: 'B', buyLots: 20, sellLots: 70),
+        ],
+        asOf: now,
+      ),
+      isFalse,
+    );
+    expect(store.report('THYAO', asOf: now), isNull);
+  });
+
+  test('rejects KTLEV-like one-sided distorted AKD before it reaches UI', () {
+    expect(
+      store.accept(
+        symbol: 'KTLEV',
+        source: source(now),
+        rows: const [
+          CrocParticipantFlow(participant: 'QNB', buyLots: 173934, sellLots: 0),
+          CrocParticipantFlow(participant: 'GARANTI', buyLots: 163159, sellLots: 0),
+          CrocParticipantFlow(participant: 'MIDAS', buyLots: 136507, sellLots: 0),
+          CrocParticipantFlow(participant: 'IS', buyLots: 0, sellLots: 473600),
+        ],
+        asOf: now,
+      ),
+      isFalse,
+    );
+    expect(store.report('KTLEV', asOf: now), isNull);
   });
 
   test('does not overwrite newer snapshot with older provider data', () {
