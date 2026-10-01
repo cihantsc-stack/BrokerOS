@@ -46,7 +46,7 @@ void main() {
       ['QNB YATIRIM',173934,9.61,0,0,173934,30,173934,9.61],
       ['GARANTI',163159,9.61,0,0,163159,28,163159,9.61],
       ['MIDAS',136507,9.61,0,0,136507,24,136507,9.61],
-      ['IS',95312,9.61,35281,9.61,130593,18,60031,9.61],
+      ['IS',0,0,533631,9.61,533631,18,-533631,9.61],
     ]);
     final result = engine.analyze(rows);
     expect(rows.first.dataFlags, contains(CrocAkdDataFlag.oneSidedFlow));
@@ -59,7 +59,7 @@ void main() {
     final rows = parser.parseRows([
       ['Araci Kurum','Alis','Ortalama','Satis','Ortalama','Toplam','Yuzde','Net','Maliyet'],
       ['YAPI KREDI',7701159,288.696,5358781,288.693,13059940,18.935,2342378,288.704],
-      ['DENIZ',991777,289.2,3192392,289.8,4184169,6,-2200615,289.796],
+      ['DENIZ',991777,289.2,3334155,289.8,4325932,6,-2342378,289.796],
     ]);
     final result = engine.analyze(rows);
     expect(result.oneSidedTurnoverPercent, 0);
