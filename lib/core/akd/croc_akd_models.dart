@@ -61,6 +61,7 @@ enum CrocAkdConcentrationSignal {
   sellerConcentrated,
   balanced,
   distorted,
+  insufficientData,
 }
 
 class CrocAkdResult {
@@ -75,6 +76,8 @@ class CrocAkdResult {
     required this.turnoverConcentrationPercent,
     required this.oneSidedTurnoverPercent,
     required this.isFlowDistorted,
+    required this.isBalancedNetBook,
+    required this.netBookImbalancePercent,
     required this.signal,
   });
 
@@ -88,5 +91,7 @@ class CrocAkdResult {
   final double turnoverConcentrationPercent;
   final double oneSidedTurnoverPercent;
   final bool isFlowDistorted;
+  final bool isBalancedNetBook;
+  final double netBookImbalancePercent;
   final CrocAkdConcentrationSignal signal;
 }
