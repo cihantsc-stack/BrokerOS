@@ -1,8 +1,15 @@
+import '../akd/croc_akd_decision_bridge.dart';
+import '../akd/croc_akd_engine.dart';
+import '../akd/croc_akd_models.dart';
 import 'croc_institutional_strength_engine.dart';
 
 /// Session-only verified participant data, indexed by BIST ticker.
 /// Only trusted adapters should call [accept]. A report is not proof
 /// that its participants are institutions rather than brokerage accounts.
+///
+/// Before a report reaches the UI, the same AKD integrity guard used by the
+/// Matriks analysis path rejects incomplete net books and one-sided/distorted
+/// flow. This prevents a verified provider label from bypassing AKD quality.
 class CrocInstitutionalFlowStore {
   CrocInstitutionalFlowStore._();
 
@@ -19,12 +26,34 @@ class CrocInstitutionalFlowStore {
   }) {
     final normalized = symbol.trim().toUpperCase();
     if (!RegExp(r'^[A-Z0-9]{3,8}$').hasMatch(normalized)) return false;
+
     final report = const CrocParticipantFlowAggregator().aggregate(
       source: source,
       rows: rows,
       asOf: asOf ?? DateTime.now(),
     );
     if (report == null) return false;
+
+    final akdRows = report.participants
+        .map(
+          (row) => CrocAkdBrokerRow(
+            institution: row.participant,
+            buyLots: row.buyLots,
+            buyAverage: 0,
+            sellLots: row.sellLots,
+            sellAverage: 0,
+            totalLots: row.buyLots + row.sellLots,
+            sharePercent: 0,
+            netLots: row.netLots,
+            cost: 0,
+          ),
+        )
+        .toList(growable: false);
+
+    final akdResult = const CrocAkdEngine().analyze(akdRows);
+    final akdEvidence = const CrocAkdDecisionBridge().inspect(akdResult);
+    if (!akdEvidence.isEligible) return false;
+
     final previous = _reports[normalized];
     if (previous != null &&
         !source.observedAt.isAfter(previous.source.observedAt)) {
