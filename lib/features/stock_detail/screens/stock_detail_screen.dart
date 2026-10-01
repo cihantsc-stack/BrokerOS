@@ -626,8 +626,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                         _buildCrocDecisionHero(mobile),
                         CrocQuickViewCard(
                           price: _displayPrice,
-                          technical: _analysis,
-                          master: _masterResult,
+                          technical: _hasSnapshotMismatch ? null : _analysis,
+                          master: _hasSnapshotMismatch ? null : _masterResult,
                           kap: _kapResult,
                         ),
                         if (_analysis != null &&
@@ -637,14 +637,15 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                             analysis: _analysis!,
                           ),
 
-                        CrocPositionCard(
-                          symbol: widget.code,
-                          currentPrice: _displayPrice,
-                          masterScore: _displayAiScore,
-                          riskLabel: _analysis?.risk ?? '',
-                          stop: _analysis?.stop ?? 0,
-                          target: _analysis?.target ?? 0,
-                        ),
+                        if (!_hasSnapshotMismatch)
+                          CrocPositionCard(
+                            symbol: widget.code,
+                            currentPrice: _displayPrice,
+                            masterScore: _displayAiScore,
+                            riskLabel: _analysis?.risk ?? '',
+                            stop: _analysis?.stop ?? 0,
+                            target: _analysis?.target ?? 0,
+                          ),
                         const SizedBox(height: 10),
                         CrocFundRadarCard(
                           result: _fundRadarResult,
@@ -1740,7 +1741,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                       painter: _TechnicalChartPainter(
                         candles: _liveCandles,
                         hoveredCandle: mobile ? null : _hoveredCandle,
-                        analysis: _analysis,
+                        analysis: _hasSnapshotMismatch ? null : _analysis,
                       ),
                     ),
                   );
@@ -1832,7 +1833,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                   ),
                 ),
               ),
-            if (_analysis != null && !mobile)
+            if (_analysis != null && !_hasSnapshotMismatch && !mobile)
               Positioned(
                 top: mobile ? 70 : 82,
                 right: 14,
