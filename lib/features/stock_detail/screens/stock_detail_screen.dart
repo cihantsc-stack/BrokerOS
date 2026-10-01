@@ -998,7 +998,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     final buyLow = scaleInPlan?.first?.low;
     final buyHigh = scaleInPlan?.first?.high;
 
-    final riskLabel = !ready ? '—' : a!.risk.toUpperCase();
+    final riskLabel = a?.risk.toUpperCase() ?? '—';
 
     final decisionColor = !ready
         ? const Color(0xFF91A69D)
@@ -1228,7 +1228,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
             ),
           ),
 
-          if (ready && _entryTimingResult != null) ...[
+          if (!blocked && ready && _entryTimingResult != null) ...[
             SizedBox(height: mobile ? 10 : 12),
             Container(
               width: double.infinity,
