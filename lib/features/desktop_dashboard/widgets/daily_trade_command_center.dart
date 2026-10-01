@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/bist/database/bist_index_membership.dart';
@@ -11,6 +12,7 @@ import '../../../core/signals/croc_signal_exit_tracker.dart';
 import '../../stock_detail/screens/stock_detail_screen.dart';
 import '../models/crazy_money_candidate.dart';
 import '../models/daily_trade_candidate.dart';
+import '../services/croc_akd_xlsx_import_service.dart';
 import '../services/daily_trade_scanner_service.dart';
 import '../services/market_master_decision_service.dart';
 
@@ -34,6 +36,7 @@ class _DailyTradeCommandCenterState extends State<DailyTradeCommandCenter> {
   bool _refreshing = false;
   bool _radarScanning = false;
   bool _baselineReady = false;
+  bool _importingAkd = false;
   DateTime? _lastRadarScan;
 
   @override
@@ -153,6 +156,45 @@ class _DailyTradeCommandCenterState extends State<DailyTradeCommandCenter> {
     }
   }
 
+  Future<void> _importAkdXlsx() async {
+    if (_importingAkd) return;
+
+    const typeGroup = XTypeGroup(
+      label: 'Matriks AKD Excel',
+      extensions: <String>['xlsx'],
+    );
+    final file = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[typeGroup],
+    );
+    if (file == null || !mounted) return;
+
+    setState(() => _importingAkd = true);
+    try {
+      final bytes = await file.readAsBytes();
+      final now = DateTime.now();
+      final result = const CrocAkdXlsxImportService().importBytes(
+        fileName: file.name,
+        bytes: bytes,
+        observedAt: now,
+        asOf: now,
+      );
+      if (!mounted) return;
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('AKD Excel dosyası okunamadı.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _importingAkd = false);
+      }
+    }
+  }
+
   String _time(DateTime time) {
     final h = time.hour.toString().padLeft(2, '0');
     final m = time.minute.toString().padLeft(2, '0');
@@ -192,6 +234,8 @@ class _DailyTradeCommandCenterState extends State<DailyTradeCommandCenter> {
                 sectors: sectors,
                 globalScore: globalScore,
                 onRefresh: _refresh,
+                importingAkd: _importingAkd,
+                onImportAkd: _importAkdXlsx,
               ),
               const SizedBox(height: 10),
               _CandidatesPanel(
@@ -230,6 +274,8 @@ class _TopBanner extends StatelessWidget {
   final List<SectorStrength> sectors;
   final int globalScore;
   final VoidCallback onRefresh;
+  final bool importingAkd;
+  final VoidCallback onImportAkd;
 
   const _TopBanner({
     required this.loading,
@@ -238,6 +284,8 @@ class _TopBanner extends StatelessWidget {
     required this.sectors,
     required this.globalScore,
     required this.onRefresh,
+    required this.importingAkd,
+    required this.onImportAkd,
   });
 
   MarketMasterDecision get _master {
@@ -332,6 +380,25 @@ class _TopBanner extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: 'AKD Excel Yükle',
+            visualDensity: VisualDensity.compact,
+            onPressed: importingAkd ? null : onImportAkd,
+            icon: importingAkd
+                ? const SizedBox(
+                    width: 17,
+                    height: 17,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFFFFC857),
+                    ),
+                  )
+                : const Icon(
+                    Icons.upload_file_rounded,
+                    color: Color(0xFFFFC857),
+                    size: 20,
+                  ),
           ),
           IconButton(
             tooltip: 'BIST 100 yeniden tara',
