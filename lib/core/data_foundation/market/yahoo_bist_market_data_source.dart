@@ -14,12 +14,14 @@ class YahooBistSnapshot {
   final bool dataIntegrityRisk;
   final int dataQualityScore;
   final double maxPriceGapPercent;
+  final String? marketState;
   const YahooBistSnapshot({
     required this.tick,
     required this.candles,
     this.dataIntegrityRisk = false,
     this.dataQualityScore = 100,
     this.maxPriceGapPercent = 0,
+    this.marketState,
   });
 }
 
@@ -131,6 +133,7 @@ class YahooBistMarketDataSource {
       dataIntegrityRisk: dataIntegrityRisk,
       dataQualityScore: dataQuality.score,
       maxPriceGapPercent: dataQuality.maxGapPercent,
+      marketState: decoded['marketState']?.toString(),
     );
   }
 }
