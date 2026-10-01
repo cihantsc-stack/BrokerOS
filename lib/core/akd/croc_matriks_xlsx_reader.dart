@@ -38,9 +38,9 @@ class CrocMatriksXlsxReader {
         eighth.contains('net');
   }
 
-  Object? _value(CellValue? value) => switch (value) {
+  String _text(TextSpan span) {\n    final buffer = StringBuffer(span.text ?? '');\n    for (final child in span.children ?? const <TextSpan>[]) {\n      buffer.write(_text(child));\n    }\n    return buffer.toString();\n  }\n\n  Object? _value(CellValue? value) => switch (value) {
         null => null,
-        TextCellValue() => value.value,
+        TextCellValue() => _text(value.value),
         IntCellValue() => value.value,
         DoubleCellValue() => value.value,
         BoolCellValue() => value.value,
