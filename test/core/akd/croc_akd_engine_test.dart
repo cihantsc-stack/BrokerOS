@@ -67,6 +67,39 @@ void main() {
     expect(result.signal, CrocAkdConcentrationSignal.balanced);
   });
 
+  test('partial AKD export is not treated as directional evidence', () {
+    final rows = parser.parseRows([
+      ['Araci Kurum','Alis','Ortalama','Satis','Ortalama','Toplam','Yuzde','Net','Maliyet'],
+      ['BUYER A',900,10,100,10,1000,50,800,10],
+      ['BUYER B',700,10,200,10,900,45,500,10],
+      ['SELLER A',50,10,150,10,200,5,-100,10],
+    ]);
+    final result = engine.analyze(rows);
+    expect(result.isBalancedNetBook, isFalse);
+    expect(result.netBookImbalancePercent, greaterThan(1));
+    expect(result.signal, CrocAkdConcentrationSignal.insufficientData);
+  });
+
+  test('complete balanced AKD book remains eligible for concentration', () {
+    final rows = parser.parseRows([
+      ['Araci Kurum','Alis','Ortalama','Satis','Ortalama','Toplam','Yuzde','Net','Maliyet'],
+      ['BUYER A',900,10,100,10,1000,50,800,10],
+      ['SELLER A',100,10,900,10,1000,50,-800,10],
+    ]);
+    final result = engine.analyze(rows);
+    expect(result.isBalancedNetBook, isTrue);
+    expect(result.netBookImbalancePercent, closeTo(0, 0.001));
+    expect(result.signal, CrocAkdConcentrationSignal.balanced);
+  });
+
+  test('rejects invalid net-book tolerance', () {
+    expect(
+      () => const CrocAkdEngine(netBookTolerancePercent: -1)
+          .analyze(const []),
+      throwsArgumentError,
+    );
+  });
+
   test('rejects invalid distortion threshold', () {
     expect(
       () => const CrocAkdEngine(distortionTurnoverThresholdPercent: 101)
