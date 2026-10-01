@@ -827,8 +827,11 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   }
 
   Widget _buildStockHeader(bool mobile) {
+    final blocked = _hasSnapshotMismatch;
     final positive = _displayChange >= 0;
-    final changeColor = positive
+    final changeColor = blocked
+        ? const Color(0xFFA8BAB2)
+        : positive
         ? const Color(0xFF70F4AD)
         : const Color(0xFFFF6673);
 
@@ -850,7 +853,9 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                 ),
               ),
               Text(
-                '${positive ? '+' : ''}${_displayChange.toStringAsFixed(2)}%',
+                blocked
+                    ? '—'
+                    : '${positive ? '+' : ''}${_displayChange.toStringAsFixed(2)}%',
                 style: TextStyle(
                   color: changeColor,
                   fontSize: 15,
@@ -866,20 +871,20 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
             children: [
               _HeaderMetric(
                 title: 'Yüksek',
-                value: _liveCandles.isEmpty
+                value: blocked || _liveCandles.isEmpty
                     ? '—'
                     : _liveCandles.last.high.toStringAsFixed(2),
               ),
               _HeaderMetric(
                 title: 'Düşük',
-                value: _liveCandles.isEmpty
+                value: blocked || _liveCandles.isEmpty
                     ? '—'
                     : _liveCandles.last.low.toStringAsFixed(2),
                 negative: true,
               ),
               _HeaderMetric(
                 title: 'Hacim',
-                value: _liveTick == null
+                value: blocked || _liveTick == null
                     ? '—'
                     : _formatCompactVolume(_liveTick!.volume),
               ),
