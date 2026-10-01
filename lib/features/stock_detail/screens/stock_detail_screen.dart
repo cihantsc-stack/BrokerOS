@@ -70,10 +70,26 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   double get _displayChange => _liveTick?.changePercent ?? widget.change;
   int get _displayAiScore =>
       _masterResult?.masterScore ?? _analysis?.score ?? 0;
-  String get _displayDecision =>
-      _masterResult?.masterDecision ?? _analysis?.decision ?? 'VERİ BEKLENİYOR';
+  String get _displayDecision => _hasSnapshotMismatch
+      ? 'VERİ TUTARSIZ'
+      : _masterResult?.masterDecision ?? _analysis?.decision ?? 'VERİ BEKLENİYOR';
 
   int get _displayConfidence => _masterResult?.masterConfidence ?? 0;
+
+  bool get _hasSnapshotMismatch {
+    final tick = _liveTick;
+    if (tick == null || _liveCandles.isEmpty || tick.price <= 0) return false;
+
+    final candle = _liveCandles.last;
+    if (candle.low <= 0 || candle.high <= 0 || candle.low > candle.high) {
+      return true;
+    }
+
+    const tolerance = 0.001;
+    return tick.price < candle.low * (1 - tolerance) ||
+        tick.price > candle.high * (1 + tolerance);
+  }
+
   bool get _hasDataIntegrityRisk {
     if (_liveCandles.length < 2) return false;
 
@@ -600,7 +616,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
                     child: Column(
                       children: [
                         _buildStockHeader(mobile),
-                        if (_hasDataIntegrityRisk) ...[
+                        if (_hasDataIntegrityRisk || _hasSnapshotMismatch) ...[
                           const SizedBox(height: 8),
                           _buildDataRiskBanner(mobile),
                         ],
@@ -951,8 +967,8 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'VERİ RİSKİ YÜKSEK • Son fiyat serisinde olağandışı kopuş tespit edildi. '
-              'Teknik göstergeleri, hedef ve stop seviyelerini daha temkinli değerlendir.',
+              'VERİ TUTARSIZ • Canlı fiyat ile son mumun yüksek/düşük aralığı uyuşmuyor. '
+              'CROC karar, giriş, hedef ve stop üretimini güvenli veri gelene kadar durdurdu.',
               style: TextStyle(
                 color: Color(0xFFFFD978),
                 fontSize: 10.5,
@@ -967,12 +983,13 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   }
 
   Widget _buildCrocDecisionHero(bool mobile) {
-    final ready = _analysis != null;
+    final ready = _analysis != null || _hasSnapshotMismatch;
     final decision = ready ? _displayDecision : 'ANALİZ EDİLİYOR';
     final score = ready ? _displayAiScore : 0;
-    final target = _analysis?.target;
-    final stop = _analysis?.stop;
-    final a = _analysis;
+    final blocked = _hasSnapshotMismatch;
+    final target = blocked ? null : _analysis?.target;
+    final stop = blocked ? null : _analysis?.stop;
+    final a = blocked ? null : _analysis;
 
     // Canonical trade levels for the Hero now come from one Scale-In Engine.
     final scaleInPlan = a == null
