@@ -295,6 +295,8 @@
           symbol,
           currency: meta.currency ?? "TRY",
           exchange: meta.exchangeName ?? null,
+          marketState: meta.marketState ?? null,
+          tradingPeriod: meta.currentTradingPeriod ?? null,
           price: livePrice,
           previousClose: previousSessionClose,
           changePercent,
